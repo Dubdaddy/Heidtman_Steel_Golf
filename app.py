@@ -550,7 +550,8 @@ else:
         styled_averages = hole_averages.style.background_gradient(
             cmap='Reds', 
             axis=1, 
-            subset=numeric_cols
+            subset=numeric_cols,
+            high=0.5  # Truncates the darkest 50% of the colormap so text remains readable
         ).format(format_relative, subset=numeric_cols)
             
         st.dataframe(styled_averages, use_container_width=True, hide_index=True)
