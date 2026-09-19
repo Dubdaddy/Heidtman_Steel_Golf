@@ -273,20 +273,23 @@ if selected_player != "All Players":
         
         # --- PLAYER ADVANCED ANALYTICS (BELOW SCORING TREND) ---
         col_pan1, col_pan2 = st.columns(2)
+        
         with col_pan1:
             st.subheader("Par Performance Breakdown (Avg Relative to Par)")
             par_tier_df = calculate_par_tier_performance(player_data)
             if not par_tier_df.empty:
-                # Melt/Transform dataframe for Altair charting
                 p_row = par_tier_df.iloc[0]
                 p_chart_df = pd.DataFrame({
                     'Par Type': ['Par 3', 'Par 4', 'Par 5'],
                     'Score Over Par': [p_row['Par 3 Avg (+/-)'], p_row['Par 4 Avg (+/-)'], p_row['Par 5 Avg (+/-)']]
                 })
                 
+                p_min, p_max = p_chart_df['Score Over Par'].min(), p_chart_df['Score Over Par'].max()
+                p_domain = [max(0, p_min - 0.1), p_max + 0.3]
+                
                 base_p = alt.Chart(p_chart_df).encode(
                     x=alt.X('Par Type:N', sort=['Par 3', 'Par 4', 'Par 5'], title='Hole Type', axis=alt.Axis(labelAngle=0)),
-                    y=alt.Y('Score Over Par:Q', scale=alt.Scale(zero=False), axis=None)
+                    y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=p_domain, zero=False), axis=None)
                 )
                 bars_p = base_p.mark_bar().encode(
                     color=alt.Color('Score Over Par:Q', legend=None, scale=alt.Scale(scheme='greens')),
@@ -299,10 +302,34 @@ if selected_player != "All Players":
                 st.altair_chart(par_chart, use_container_width=True)
                 
         with col_pan2:
-            st.subheader("Scoring Volatility Index")
-            volatility_df = calculate_volatility(player_data)
-            if not volatility_df.empty:
-                st.dataframe(volatility_df.drop(columns=['Golfer Name']), use_container_width=True, hide_index=True)
+            st.subheader("Scoring Volatility Index (Floor & Ceiling)")
+            scores_list = player_data['Total'].dropna()
+            if not scores_list.empty:
+                best_floor = int(scores_list.min())
+                career_avg = round(scores_list.mean(), 2)
+                worst_ceiling = int(scores_list.max())
+                
+                vol_chart_df = pd.DataFrame({
+                    'Metric': ['Best (Floor)', 'Average', 'Worst (Ceiling)'],
+                    'Score': [best_floor, career_avg, worst_ceiling]
+                })
+                
+                v_min, v_max = vol_chart_df['Score'].min(), vol_chart_df['Score'].max()
+                v_domain = [max(0, v_min - 3), v_max + 3]
+                
+                base_v = alt.Chart(vol_chart_df).encode(
+                    x=alt.X('Metric:N', sort=['Best (Floor)', 'Average', 'Worst (Ceiling)'], title='Scoring Spread', axis=alt.Axis(labelAngle=0)),
+                    y=alt.Y('Score:Q', scale=alt.Scale(domain=v_domain, zero=False), axis=None)
+                )
+                bars_v = base_v.mark_bar(width=45).encode(
+                    color=alt.Color('Metric:N', legend=None, scale=alt.Scale(domain=['Best (Floor)', 'Average', 'Worst (Ceiling)'], range=['#2ca02c', '#1f77b4', '#d62728'])),
+                    tooltip=['Metric', 'Score']
+                )
+                text_v = base_v.mark_text(align='center', baseline='bottom', dy=-6, fontSize=13, fontWeight='bold', color='black').encode(
+                    text=alt.Text('Score:Q', format='.1f')
+                )
+                vol_chart = (bars_v + text_v).properties(height=320)
+                st.altair_chart(vol_chart, use_container_width=True)
         
     else:
         st.warning(f"No primary roster scores found for {selected_player}.")
