@@ -5,7 +5,6 @@ import pandas as pd
 st.set_page_config(page_title="Heidtman Steel Golf League", layout="wide")
 
 # --- DATA INGESTION ---
-# Streamlit caches this so it doesn't reload the Excel file on every click
 @st.cache_data
 def load_data():
     # Read the main historical scores sheet
@@ -16,9 +15,6 @@ def load_data():
     
     # Extract the Year for easy filtering later
     df['Year'] = df['Golf Date'].dt.year
-    
-    # Optional: Filter out sub scores if you only want main roster stats
-    # df_roster = df[df['Had Sub?'] == 'No']
     
     return df
 
@@ -45,7 +41,6 @@ selected_player = st.sidebar.selectbox("Select Player", ["All Players"] + player
 if selected_player != "All Players":
     filtered_df = filtered_df[filtered_df['Golfer Name'] == selected_player]
 
-
 # --- MAIN DASHBOARD AREA ---
 st.title("Heidtman Steel Golf League Dashboard")
 st.markdown("Welcome to the league stat tracker.")
@@ -53,3 +48,35 @@ st.markdown("Welcome to the league stat tracker.")
 # Show a sample of the data to verify it works
 st.subheader("Raw Data View")
 st.dataframe(filtered_df.head(15))
+
+# --- PHASE 2: CORE METRICS & ANALYTICS ---
+st.header("Player Profiles & Statistics")
+
+# Exclude substitute rounds to maintain accurate personal statistics
+primary_scores = filtered_df[filtered_df['Had Sub?'] == 'No']
+
+if not primary_scores.empty:
+    # Build the performance summary table
+    player_summary = primary_scores.groupby('Golfer Name').agg(
+        Rounds_Played=('Total', 'count'),
+        Average_Score=('Total', 'mean'),
+        Lowest_Round=('Total', 'min'),
+        Highest_Round=('Total', 'max')
+    ).reset_index()
+    
+    # Clean up the formatting for display
+    player_summary['Average_Score'] = player_summary['Average_Score'].round(2)
+    player_summary = player_summary.sort_values(by='Average_Score')
+    
+    st.subheader("Performance Overview")
+    st.dataframe(player_summary, use_container_width=True, hide_index=True)
+
+    # Build the hole-by-hole breakdown
+    st.subheader("Hole-by-Hole Scoring Averages")
+    
+    hole_columns = ['Hole 1', 'Hole 2', 'Hole 3', 'Hole 4', 'Hole 5', 'Hole 6', 'Hole 7', 'Hole 8', 'Hole 9']
+    hole_averages = primary_scores.groupby('Golfer Name')[hole_columns].mean().round(2).reset_index()
+    
+    st.dataframe(hole_averages, use_container_width=True, hide_index=True)
+else:
+    st.warning("No data available for the current filter selection.")
