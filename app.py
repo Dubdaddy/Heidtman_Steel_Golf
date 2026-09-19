@@ -16,53 +16,14 @@ def load_data():
 
 df = load_data()
 
-# --- PAR MAPPINGS ---
-FRONT_PARS = {'Hole 1': 4, 'Hole 2': 4, 'Hole 3': 5, 'Hole 4': 4, 'Hole 5': 4, 'Hole 6': 3, 'Hole 7': 5, 'Hole 8': 3, 'Hole 9': 4}
-BACK_PARS = {'Hole 1': 4, 'Hole 2': 5, 'Hole 3': 4, 'Hole 4': 3, 'Hole 5': 5, 'Hole 6': 4, 'Hole 7': 3, 'Hole 8': 4, 'Hole 9': 4}
-
-def calculate_breakdown(sub_df):
-    stats = []
-    hole_columns = [f'Hole {i}' for i in range(1, 10)]
-    
-    for name, group in sub_df.groupby('Golfer Name'):
-        eagles, birdies, pars, bogeys, double_plus = 0, 0, 0, 0, 0
-        for _, row in group.iterrows():
-            fb = row['Front/Back']
-            p_dict = FRONT_PARS if fb == 'Front' else BACK_PARS
-            for h_col in hole_columns:
-                score = row[h_col]
-                if pd.isna(score): continue
-                diff = score - p_dict[h_col]
-                if diff <= -2: eagles += 1
-                elif diff == -1: birdies += 1
-                elif diff == 0: pars += 1
-                elif diff == 1: bogeys += 1
-                else: double_plus += 1
-        stats.append({
-            'Golfer Name': name,
-            'Eagles': eagles,
-            'Birdies': birdies,
-            'Pars': pars,
-            'Bogeys': bogeys,
-            'Double Bogey+': double_plus
-        })
-    return pd.DataFrame(stats)
-
 # --- SIDEBAR FILTERS ---
 st.sidebar.title("League Filters")
-available_years = df['Year'].unique()
-selected_year = st.sidebar.selectbox("Select Season", ["All Time"] + list(available_years))
 
-if selected_year != "All Time":
-    filtered_df = df[df['Year'] == selected_year]
-else:
-    filtered_df = df
-
-players = sorted(filtered_df['Golfer Name'].unique())
+# Filter by Player only (Season filter removed)
+players = sorted(df['Golfer Name'].unique())
 selected_player = st.sidebar.selectbox("Select Player", ["All Players"] + players)
 
-if selected_player != "All Players":
-    filtered_df = filtered_df[filtered_df['Golfer Name'] == selected_player]
+filtered_df = df if selected_player == "All Players" else df[df['Golfer Name'] == selected_player]
 
 # --- MAIN DASHBOARD AREA ---
 st.title("Heidtman Steel Golf League Dashboard")
@@ -117,6 +78,36 @@ current_handicaps = current_handicaps.sort_values('Current Handicap Index')
 primary_scores = filtered_df[filtered_df['Had Sub?'] == 'No']
 hole_columns = ['Hole 1', 'Hole 2', 'Hole 3', 'Hole 4', 'Hole 5', 'Hole 6', 'Hole 7', 'Hole 8', 'Hole 9']
 
+# --- PAR MAPPINGS FOR BREAKDOWN ---
+FRONT_PARS = {'Hole 1': 4, 'Hole 2': 4, 'Hole 3': 5, 'Hole 4': 4, 'Hole 5': 4, 'Hole 6': 3, 'Hole 7': 5, 'Hole 8': 3, 'Hole 9': 4}
+BACK_PARS = {'Hole 1': 4, 'Hole 2': 5, 'Hole 3': 4, 'Hole 4': 3, 'Hole 5': 5, 'Hole 6': 4, 'Hole 7': 3, 'Hole 8': 4, 'Hole 9': 4}
+
+def calculate_breakdown(sub_df):
+    stats = []
+    for name, group in sub_df.groupby('Golfer Name'):
+        eagles, birdies, pars, bogeys, double_plus = 0, 0, 0, 0, 0
+        for _, row in group.iterrows():
+            fb = row['Front/Back']
+            p_dict = FRONT_PARS if fb == 'Front' else BACK_PARS
+            for h_col in hole_columns:
+                score = row[h_col]
+                if pd.isna(score): continue
+                diff = score - p_dict[h_col]
+                if diff <= -2: eagles += 1
+                elif diff == -1: birdies += 1
+                elif diff == 0: pars += 1
+                elif diff == 1: bogeys += 1
+                else: double_plus += 1
+        stats.append({
+            'Golfer Name': name,
+            'Eagles': eagles,
+            'Birdies': birdies,
+            'Pars': pars,
+            'Bogeys': bogeys,
+            'Double Bogey+': double_plus
+        })
+    return pd.DataFrame(stats)
+
 
 # ==========================================
 # UI RENDERING LOGIC (Player Profile vs League)
@@ -155,7 +146,7 @@ if selected_player != "All Players":
         
         col_split1, col_split2 = st.columns(2)
         with col_split1:
-            st.subheader("Course Breakdown (Current Filter)")
+            st.subheader("Course Breakdown")
             tot_front = player_data[player_data['Front/Back'] == 'Front']['Total'].mean()
             tot_back = player_data[player_data['Front/Back'] == 'Back']['Total'].mean()
             
@@ -239,7 +230,7 @@ if selected_player != "All Players":
         st.altair_chart(line_chart, use_container_width=True)
         
     else:
-        st.warning(f"No primary roster scores found for {selected_player} in the selected time frame.")
+        st.warning(f"No primary roster scores found for {selected_player}.")
 
 else:
     # --- LEAGUE WIDE DASHBOARD ---
@@ -318,4 +309,4 @@ else:
         st.altair_chart(league_chart, use_container_width=True)
 
     else:
-        st.warning("No data available for the current filter selection.")
+        st.warning("No data available.")
