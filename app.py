@@ -212,14 +212,6 @@ if selected_player != "All Players":
             st.dataframe(breakdown_df.drop(columns=['Golfer Name']), use_container_width=True, hide_index=True)
             
         st.markdown("<br>", unsafe_allow_html=True)
-        
-        # PAR PERFORMANCE BREAKDOWN (PLAYER)
-        st.subheader("Par Performance Breakdown (Avg Relative to Par)")
-        par_tier_df = calculate_par_tier_performance(player_data)
-        if not par_tier_df.empty:
-            st.dataframe(par_tier_df.drop(columns=['Golfer Name']), use_container_width=True, hide_index=True)
-        
-        st.markdown("<br>", unsafe_allow_html=True)
 
         # SEASON OVER SEASON TABLE
         st.subheader("Season-over-Season Performance")
@@ -276,6 +268,21 @@ if selected_player != "All Players":
         ).properties(height=400)
         
         st.altair_chart(line_chart, use_container_width=True)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # --- PLAYER ADVANCED ANALYTICS (BELOW SCORING TREND) ---
+        col_pan1, col_pan2 = st.columns(2)
+        with col_pan1:
+            st.subheader("Par Performance Breakdown")
+            par_tier_df = calculate_par_tier_performance(player_data)
+            if not par_tier_df.empty:
+                st.dataframe(par_tier_df.drop(columns=['Golfer Name']), use_container_width=True, hide_index=True)
+        with col_pan2:
+            st.subheader("Scoring Volatility Index")
+            volatility_df = calculate_volatility(player_data)
+            if not volatility_df.empty:
+                st.dataframe(volatility_df.drop(columns=['Golfer Name']), use_container_width=True, hide_index=True)
         
     else:
         st.warning(f"No primary roster scores found for {selected_player}.")
@@ -393,7 +400,7 @@ else:
         
         st.markdown("<br>", unsafe_allow_html=True)
             
-        # League Scoring Trend at the bottom
+        # League Scoring Trend at the top/middle, moving analytics below it
         st.subheader("League Scoring Trend (Daily Average)")
         trend_data = primary_scores.groupby('Golf Date')['Total'].mean().reset_index()
         trend_data['Date Label'] = trend_data['Golf Date'].dt.month.astype(str) + '/' + trend_data['Golf Date'].dt.day.astype(str) + '/' + trend_data['Golf Date'].dt.year.astype(str)
@@ -411,7 +418,7 @@ else:
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # --- NEW ANALYTIC TABLES BELOW SCORING TREND ---
+        # --- ADVANCED LEAGUE ANALYTICS (BELOW SCORING TREND) ---
         st.header("Advanced League Analytics")
         
         col_an1, col_an2 = st.columns(2)
