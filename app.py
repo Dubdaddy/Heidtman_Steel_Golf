@@ -282,23 +282,37 @@ else:
         # --- PHASE 4: VISUALIZATIONS & TRENDS ---
         st.header("Visualizations & Trends")
         
-        # Side-by-side Over Par Hole Difficulty Charts
+        # Side-by-side Dynamic Over-Par Hole Difficulty Charts
         col1, col2 = st.columns(2)
         
         front_scores = primary_scores[primary_scores['Front/Back'] == 'Front']
         back_scores = primary_scores[primary_scores['Front/Back'] == 'Back']
         
-        # Compute over par averages
-        front_over_par = front_scores[hole_columns].mean().sub(pd.Series(FRONT_PARS)).round(2).rename("Score Over Par")
-        back_over_par = back_scores[hole_columns].mean().sub(pd.Series(BACK_PARS)).round(2).rename("Score Over Par")
+        front_over_par = front_scores[hole_columns].mean().sub(pd.Series(FRONT_PARS)).round(2).reset_index()
+        front_over_par.columns = ['Hole', 'Score Over Par']
+        
+        back_over_par = back_scores[hole_columns].mean().sub(pd.Series(BACK_PARS)).round(2).reset_index()
+        back_over_par.columns = ['Hole', 'Score Over Par']
         
         with col1:
             st.subheader("Front 9 Hole Difficulty (Over Par)")
-            st.bar_chart(front_over_par)
+            front_chart = alt.Chart(front_over_par).mark_bar().encode(
+                x=alt.X('Hole:N', sort=None, title='Hole'),
+                y=alt.Y('Score Over Par:Q', title='Strokes Over Par'),
+                color=alt.Color('Score Over Par:Q', legend=None, scale=alt.Scale(scheme='blues')),
+                tooltip=['Hole', 'Score Over Par']
+            ).properties(height=350)
+            st.altair_chart(front_chart, use_container_width=True)
             
         with col2:
             st.subheader("Back 9 Hole Difficulty (Over Par)")
-            st.bar_chart(back_over_par)
+            back_chart = alt.Chart(back_over_par).mark_bar().encode(
+                x=alt.X('Hole:N', sort=None, title='Hole'),
+                y=alt.Y('Score Over Par:Q', title='Strokes Over Par'),
+                color=alt.Color('Score Over Par:Q', legend=None, scale=alt.Scale(scheme='oranges')),
+                tooltip=['Hole', 'Score Over Par']
+            ).properties(height=350)
+            st.altair_chart(back_chart, use_container_width=True)
             
         st.markdown("<br>", unsafe_allow_html=True)
             
