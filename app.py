@@ -282,7 +282,7 @@ else:
         # --- PHASE 4: VISUALIZATIONS & TRENDS ---
         st.header("Visualizations & Trends")
         
-        # Side-by-side Dynamic Over-Par Hole Difficulty Charts (Y-axis title removed)
+        # Side-by-side Dynamic Over-Par Hole Difficulty Charts with Full Hole Names & No Y-axis numbers
         col1, col2 = st.columns(2)
         
         front_scores = primary_scores[primary_scores['Front/Back'] == 'Front']
@@ -290,11 +290,9 @@ else:
         
         front_over_par = front_scores[hole_columns].mean().sub(pd.Series(FRONT_PARS)).round(2).reset_index()
         front_over_par.columns = ['Hole', 'Score Over Par']
-        front_over_par['Hole_Num'] = front_over_par['Hole'].str.replace('Hole ', '')
         
         back_over_par = back_scores[hole_columns].mean().sub(pd.Series(BACK_PARS)).round(2).reset_index()
         back_over_par.columns = ['Hole', 'Score Over Par']
-        back_over_par['Hole_Num'] = back_over_par['Hole'].str.replace('Hole ', '')
         
         f_min, f_max = front_over_par['Score Over Par'].min(), front_over_par['Score Over Par'].max()
         b_min, b_max = back_over_par['Score Over Par'].min(), back_over_par['Score Over Par'].max()
@@ -302,14 +300,14 @@ else:
         front_domain = [max(0, f_min - 0.15), f_max + 0.2]
         back_domain = [max(0, b_min - 0.15), b_max + 0.2]
         
-        hole_order = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
+        hole_order = ['Hole 1', 'Hole 2', 'Hole 3', 'Hole 4', 'Hole 5', 'Hole 6', 'Hole 7', 'Hole 8', 'Hole 9']
         
         with col1:
             st.subheader("Front 9 Hole Difficulty (Over Par)")
             
             base_f = alt.Chart(front_over_par).encode(
-                x=alt.X('Hole_Num:N', sort=hole_order, title='Hole Number'),
-                y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=front_domain, zero=False), title=None)
+                x=alt.X('Hole:N', sort=hole_order, title='Hole', axis=alt.Axis(labelAngle=0)),
+                y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=front_domain, zero=False), axis=None)
             )
             bars_f = base_f.mark_bar().encode(
                 color=alt.Color('Score Over Par:Q', legend=None, scale=alt.Scale(scheme='blues')),
@@ -325,8 +323,8 @@ else:
             st.subheader("Back 9 Hole Difficulty (Over Par)")
             
             base_b = alt.Chart(back_over_par).encode(
-                x=alt.X('Hole_Num:N', sort=hole_order, title='Hole Number'),
-                y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=back_domain, zero=False), title=None)
+                x=alt.X('Hole:N', sort=hole_order, title='Hole', axis=alt.Axis(labelAngle=0)),
+                y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=back_domain, zero=False), axis=None)
             )
             bars_b = base_b.mark_bar().encode(
                 color=alt.Color('Score Over Par:Q', legend=None, scale=alt.Scale(scheme='oranges')),
