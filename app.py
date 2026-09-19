@@ -282,7 +282,7 @@ else:
         # --- PHASE 4: VISUALIZATIONS & TRENDS ---
         st.header("Visualizations & Trends")
         
-        # Side-by-side Dynamic Over-Par Hole Difficulty Charts with Larger Data Labels & Hole Numbers
+        # Side-by-side Dynamic Over-Par Hole Difficulty Charts (Y-axis title removed)
         col1, col2 = st.columns(2)
         
         front_scores = primary_scores[primary_scores['Front/Back'] == 'Front']
@@ -309,13 +309,12 @@ else:
             
             base_f = alt.Chart(front_over_par).encode(
                 x=alt.X('Hole_Num:N', sort=hole_order, title='Hole Number'),
-                y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=front_domain, zero=False), title='Strokes Over Par')
+                y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=front_domain, zero=False), title=None)
             )
             bars_f = base_f.mark_bar().encode(
                 color=alt.Color('Score Over Par:Q', legend=None, scale=alt.Scale(scheme='blues')),
                 tooltip=['Hole', 'Score Over Par']
             )
-            # Increased font size for better readability
             text_f = base_f.mark_text(align='center', baseline='bottom', dy=-6, fontSize=13, fontWeight='bold').encode(
                 text=alt.Text('Score Over Par:Q', format='.2f')
             )
@@ -327,13 +326,12 @@ else:
             
             base_b = alt.Chart(back_over_par).encode(
                 x=alt.X('Hole_Num:N', sort=hole_order, title='Hole Number'),
-                y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=back_domain, zero=False), title='Strokes Over Par')
+                y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=back_domain, zero=False), title=None)
             )
             bars_b = base_b.mark_bar().encode(
                 color=alt.Color('Score Over Par:Q', legend=None, scale=alt.Scale(scheme='oranges')),
                 tooltip=['Hole', 'Score Over Par']
             )
-            # Increased font size for better readability
             text_b = base_b.mark_text(align='center', baseline='bottom', dy=-6, fontSize=13, fontWeight='bold').encode(
                 text=alt.Text('Score Over Par:Q', format='.2f')
             )
