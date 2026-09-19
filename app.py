@@ -497,7 +497,7 @@ else:
         st.subheader("Performance Overview")
         st.dataframe(player_summary, use_container_width=True, hide_index=True)
 
-        st.subheader("Hole-by-Hole Scoring Averages")
+        st.subheader("Hole-by-Hole Scoring Averages (Relative to Par)")
         
         # Toggle button for Front 9 vs Back 9
         nine_selection = st.radio(
@@ -507,18 +507,53 @@ else:
             label_visibility="collapsed"
         )
         
-        # Filter the data based on the toggle selection
+        # Helper function to format the relative-to-par floats
+        def format_relative(val):
+            if pd.isna(val): return ""
+            return f"+{val:.2f}" if val > 0 else f"{val:.2f}"
+            
+        # Filter the data and calculate metrics based on the toggle selection
         if nine_selection == "Front 9":
             side_scores = primary_scores[primary_scores['Front/Back'] == 'Front']
-            hole_averages = side_scores.groupby('Golfer Name')[hole_columns].mean().round(2).reset_index()
+            hole_averages = side_scores.groupby('Golfer Name')[hole_columns].mean()
+            
+            # Subtract Par
+            for col in hole_columns:
+                hole_averages[col] = hole_averages[col] - FRONT_PARS[col]
+            
+            hole_averages = hole_averages.round(2).reset_index()
+            
+            # Rename columns to map Hole + Par
+            new_cols = {'Golfer Name': 'Golfer Name'}
+            for col in hole_columns:
+                new_cols[col] = f"{col} | Par {FRONT_PARS[col]}"
+            hole_averages = hole_averages.rename(columns=new_cols)
+            
         else:
             side_scores = primary_scores[primary_scores['Front/Back'] == 'Back']
-            hole_averages = side_scores.groupby('Golfer Name')[hole_columns].mean().round(2).reset_index()
-            # Rename columns to represent Holes 10-18 for the Back 9 display
-            back_nine_columns = {f'Hole {i}': f'Hole {i+9}' for i in range(1, 10)}
-            hole_averages = hole_averages.rename(columns=back_nine_columns)
+            hole_averages = side_scores.groupby('Golfer Name')[hole_columns].mean()
             
-        st.dataframe(hole_averages, use_container_width=True, hide_index=True)
+            # Subtract Par
+            for col in hole_columns:
+                hole_averages[col] = hole_averages[col] - BACK_PARS[col]
+            
+            hole_averages = hole_averages.round(2).reset_index()
+            
+            # Rename columns to map Hole (10-18) + Par
+            new_cols = {'Golfer Name': 'Golfer Name'}
+            for i, col in enumerate(hole_columns, start=1):
+                new_cols[col] = f"Hole {i+9} | Par {BACK_PARS[col]}"
+            hole_averages = hole_averages.rename(columns=new_cols)
+            
+        # Apply Heatmap styling (row-wise axis=1 to highlight a specific golfer's hardest holes)
+        numeric_cols = [c for c in hole_averages.columns if c != 'Golfer Name']
+        styled_averages = hole_averages.style.background_gradient(
+            cmap='Reds', 
+            axis=1, 
+            subset=numeric_cols
+        ).format(format_relative, subset=numeric_cols)
+            
+        st.dataframe(styled_averages, use_container_width=True, hide_index=True)
         
         # SCORING BREAKDOWN TABLE (LEAGUE)
         st.subheader("League Scoring Breakdown Summary")
