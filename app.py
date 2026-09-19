@@ -19,7 +19,7 @@ df = load_data()
 # --- SIDEBAR FILTERS ---
 st.sidebar.title("League Filters")
 
-# Filter by Player only (Season filter removed)
+# Filter by Player only
 players = sorted(df['Golfer Name'].unique())
 selected_player = st.sidebar.selectbox("Select Player", ["All Players"] + players)
 
@@ -281,18 +281,33 @@ else:
         
         # --- PHASE 4: VISUALIZATIONS & TRENDS ---
         st.header("Visualizations & Trends")
+        
+        # Side-by-side Hole Difficulty Charts
         col1, col2 = st.columns(2)
         
+        front_scores = primary_scores[primary_scores['Front/Back'] == 'Front']
+        back_scores = primary_scores[primary_scores['Front/Back'] == 'Back']
+        
         with col1:
-            st.subheader("League Hole Difficulty")
-            hole_diff = primary_scores[hole_columns].mean().rename("Average Score")
-            st.bar_chart(hole_diff)
+            st.subheader("Front 9 Hole Difficulty")
+            front_diff = front_scores[hole_columns].mean().rename("Average Score")
+            st.bar_chart(front_diff)
             
         with col2:
-            st.subheader("League Score Distribution")
-            score_dist = primary_scores['Total'].value_counts().sort_index()
-            st.bar_chart(score_dist)
+            st.subheader("Back 9 Hole Difficulty")
+            back_diff = back_scores[hole_columns].mean().rename("Average Score")
+            st.bar_chart(back_diff)
             
+        st.markdown("<br>", unsafe_allow_html=True)
+            
+        # League Score Distribution in between
+        st.subheader("League Score Distribution")
+        score_dist = primary_scores['Total'].value_counts().sort_index()
+        st.bar_chart(score_dist)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+            
+        # League Scoring Trend at the bottom
         st.subheader("League Scoring Trend (Daily Average)")
         trend_data = primary_scores.groupby('Golf Date')['Total'].mean().reset_index()
         trend_data['Date Label'] = trend_data['Golf Date'].dt.month.astype(str) + '/' + trend_data['Golf Date'].dt.day.astype(str) + '/' + trend_data['Golf Date'].dt.year.astype(str)
