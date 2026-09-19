@@ -108,6 +108,46 @@ def calculate_breakdown(sub_df):
         })
     return pd.DataFrame(stats)
 
+def calculate_par_tier_performance(sub_df):
+    tier_stats = []
+    for name, group in sub_df.groupby('Golfer Name'):
+        par3_diffs, par4_diffs, par5_diffs = [], [], []
+        for _, row in group.iterrows():
+            fb = row['Front/Back']
+            p_dict = FRONT_PARS if fb == 'Front' else BACK_PARS
+            for h in range(1, 10):
+                h_col = f'Hole {h}'
+                score = row[h_col]
+                if pd.isna(score): continue
+                par = p_dict[h_col]
+                diff = score - par
+                if par == 3: par3_diffs.append(diff)
+                elif par == 4: par4_diffs.append(diff)
+                elif par == 5: par5_diffs.append(diff)
+        tier_stats.append({
+            'Golfer Name': name,
+            'Par 3 Avg (+/-)': round(sum(par3_diffs)/len(par3_diffs), 2) if par3_diffs else 0,
+            'Par 4 Avg (+/-)': round(sum(par4_diffs)/len(par4_diffs), 2) if par4_diffs else 0,
+            'Par 5 Avg (+/-)': round(sum(par5_diffs)/len(par5_diffs), 2) if par5_diffs else 0,
+        })
+    return pd.DataFrame(tier_stats)
+
+def calculate_volatility(sub_df):
+    vol_stats = []
+    for name, group in sub_df.groupby('Golfer Name'):
+        scores = group['Total'].dropna()
+        if len(scores) < 2: continue
+        vol_stats.append({
+            'Golfer Name': name,
+            'Rounds': len(scores),
+            'Avg Score': round(scores.mean(), 2),
+            'Std Deviation': round(scores.std(), 2),
+            'Min Score': int(scores.min()),
+            'Max Score': int(scores.max()),
+            'Score Range': int(scores.max() - scores.min())
+        })
+    return pd.DataFrame(vol_stats).sort_values(by='Std Deviation')
+
 
 # ==========================================
 # UI RENDERING LOGIC (Player Profile vs League)
@@ -170,6 +210,14 @@ if selected_player != "All Players":
         breakdown_df = calculate_breakdown(player_data)
         if not breakdown_df.empty:
             st.dataframe(breakdown_df.drop(columns=['Golfer Name']), use_container_width=True, hide_index=True)
+            
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # PAR PERFORMANCE BREAKDOWN (PLAYER)
+        st.subheader("Par Performance Breakdown (Avg Relative to Par)")
+        par_tier_df = calculate_par_tier_performance(player_data)
+        if not par_tier_df.empty:
+            st.dataframe(par_tier_df.drop(columns=['Golfer Name']), use_container_width=True, hide_index=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -282,7 +330,7 @@ else:
         # --- PHASE 4: VISUALIZATIONS & TRENDS ---
         st.header("Visualizations & Trends")
         
-        # Side-by-side Dynamic Over-Par Hole Difficulty Charts with Full Hole Names & No Y-axis numbers
+        # Side-by-side Dynamic Over-Par Hole Difficulty Charts
         col1, col2 = st.columns(2)
         
         front_scores = primary_scores[primary_scores['Front/Back'] == 'Front']
@@ -360,6 +408,23 @@ else:
         ).properties(height=400)
         
         st.altair_chart(league_chart, use_container_width=True)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # --- NEW ANALYTIC TABLES BELOW SCORING TREND ---
+        st.header("Advanced League Analytics")
+        
+        col_an1, col_an2 = st.columns(2)
+        
+        with col_an1:
+            st.subheader("Par Performance Breakdown (Avg Relative to Par)")
+            par_tier_league = calculate_par_tier_performance(primary_scores)
+            st.dataframe(par_tier_league, use_container_width=True, hide_index=True)
+            
+        with col_an2:
+            st.subheader("Scoring Consistency & Volatility Index")
+            volatility_league = calculate_volatility(primary_scores)
+            st.dataframe(volatility_league, use_container_width=True, hide_index=True)
 
     else:
         st.warning("No data available.")
