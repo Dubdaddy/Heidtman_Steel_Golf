@@ -288,7 +288,7 @@ if selected_player != "All Players":
                 p_domain = [max(0, p_min - 0.1), p_max + 0.3]
                 
                 base_p = alt.Chart(p_chart_df).encode(
-                    x=alt.X('Par Type:N', sort=['Par 3', 'Par 4', 'Par 5'], title='Hole Type', axis=alt.Axis(labelAngle=0)),
+                    x=alt.X('Par Type:N', sort=['Par 3', 'Par 4', 'Par 5'], title='Hole Type', axis=alt.Axis(labelAngle=0, labelFontSize=12, labelFontWeight='bold')),
                     y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=p_domain, zero=False), axis=None)
                 )
                 bars_p = base_p.mark_bar().encode(
@@ -305,7 +305,6 @@ if selected_player != "All Players":
             st.subheader("Score Dispersion (Frequency)")
             scores_list = player_data['Total'].dropna()
             if not scores_list.empty:
-                # Group and count occurrences of each score
                 disp_df = scores_list.value_counts().reset_index()
                 disp_df.columns = ['Score', 'Frequency']
                 disp_df = disp_df.sort_values('Score')
@@ -315,7 +314,7 @@ if selected_player != "All Players":
                 d_domain = [0, d_max + 1.5]
                 
                 base_d = alt.Chart(disp_df).encode(
-                    x=alt.X('Score_Str:N', sort=disp_df['Score_Str'].tolist(), title='Gross Score', axis=alt.Axis(labelAngle=0)),
+                    x=alt.X('Score_Str:N', sort=disp_df['Score_Str'].tolist(), title='Gross Score', axis=alt.Axis(labelAngle=0, labelFontSize=12, labelFontWeight='bold')),
                     y=alt.Y('Frequency:Q', scale=alt.Scale(domain=d_domain, zero=True), axis=None)
                 )
                 bars_d = base_d.mark_bar(width=35).encode(
