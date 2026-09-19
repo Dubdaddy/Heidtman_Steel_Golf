@@ -274,10 +274,30 @@ if selected_player != "All Players":
         # --- PLAYER ADVANCED ANALYTICS (BELOW SCORING TREND) ---
         col_pan1, col_pan2 = st.columns(2)
         with col_pan1:
-            st.subheader("Par Performance Breakdown")
+            st.subheader("Par Performance Breakdown (Avg Relative to Par)")
             par_tier_df = calculate_par_tier_performance(player_data)
             if not par_tier_df.empty:
-                st.dataframe(par_tier_df.drop(columns=['Golfer Name']), use_container_width=True, hide_index=True)
+                # Melt/Transform dataframe for Altair charting
+                p_row = par_tier_df.iloc[0]
+                p_chart_df = pd.DataFrame({
+                    'Par Type': ['Par 3', 'Par 4', 'Par 5'],
+                    'Score Over Par': [p_row['Par 3 Avg (+/-)'], p_row['Par 4 Avg (+/-)'], p_row['Par 5 Avg (+/-)']]
+                })
+                
+                base_p = alt.Chart(p_chart_df).encode(
+                    x=alt.X('Par Type:N', sort=['Par 3', 'Par 4', 'Par 5'], title='Hole Type', axis=alt.Axis(labelAngle=0)),
+                    y=alt.Y('Score Over Par:Q', scale=alt.Scale(zero=False), axis=None)
+                )
+                bars_p = base_p.mark_bar().encode(
+                    color=alt.Color('Score Over Par:Q', legend=None, scale=alt.Scale(scheme='greens')),
+                    tooltip=['Par Type', 'Score Over Par']
+                )
+                text_p = base_p.mark_text(align='center', baseline='bottom', dy=-6, fontSize=13, fontWeight='bold').encode(
+                    text=alt.Text('Score Over Par:Q', format='.2f')
+                )
+                par_chart = (bars_p + text_p).properties(height=320)
+                st.altair_chart(par_chart, use_container_width=True)
+                
         with col_pan2:
             st.subheader("Scoring Volatility Index")
             volatility_df = calculate_volatility(player_data)
