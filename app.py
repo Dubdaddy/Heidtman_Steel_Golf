@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import altair as alt
 
 # Set page configuration for the dashboard
 st.set_page_config(page_title="Heidtman Steel Golf League", layout="wide")
@@ -92,33 +93,73 @@ hole_columns = ['Hole 1', 'Hole 2', 'Hole 3', 'Hole 4', 'Hole 5', 'Hole 6', 'Hol
 if selected_player != "All Players":
     # --- INDIVIDUAL PLAYER PROFILE ---
     st.header(f"🏌️ Player Profile: {selected_player}")
-    player_data = primary_scores.sort_values(by='Golf Date', ascending=False)
+    player_data = primary_scores.sort_values(by='Golf Date', ascending=False).copy()
     
     if not player_data.empty:
         col1, col2, col3, col4 = st.columns(4)
         
         rounds_played = len(player_data)
         avg_score = player_data['Total'].mean()
-        best_score = player_data['Total'].min()
+        
+        # Lowest round with most recent date tie-breaker
+        lowest_round_df = player_data.sort_values(by=['Total', 'Golf Date'], ascending=[True, False]).iloc[0]
+        best_score = lowest_round_df['Total']
+        best_date_str = lowest_round_df['Golf Date'].strftime('%m/%d/%Y')
         
         player_hcp_row = current_handicaps[current_handicaps['Golfer Name'] == selected_player]
         player_hcp = player_hcp_row['Current Handicap Index'].values[0] if not player_hcp_row.empty else "N/A"
         
         col1.metric("Current Handicap", player_hcp)
         col2.metric("Career Avg Score", round(avg_score, 2))
-        col3.metric("Lowest Round", int(best_score))
+        col3.metric("Lowest Round", f"{int(best_score)}", help=f"Shot on {best_date_str}")
         col4.metric("Rounds Played", rounds_played)
         
+        st.markdown(f"*Lowest Round Date: **{best_date_str}***")
         st.markdown("---")
+        
+        # SEASON OVER SEASON TABLE
+        st.subheader("Season-over-Season Performance")
+        season_rows = []
+        years = sorted(player_data['Year'].unique())
+        
+        for y in years:
+            y_df = player_data[player_data['Year'] == y]
+            if not y_df.empty:
+                r_cnt = len(y_df)
+                s_avg = y_df['Total'].mean()
+                s_min_row = y_df.sort_values(by=['Total', 'Golf Date'], ascending=[True, False]).iloc[0]
+                front_avg = y_df[y_df['Front/Back'] == 'Front']['Total'].mean()
+                back_avg = y_df[y_df['Front/Back'] == 'Back']['Total'].mean()
+                
+                season_rows.append({
+                    'Season': str(y),
+                    'Rounds': r_cnt,
+                    'Avg Score': round(s_avg, 2),
+                    'Lowest Round': f"{s_min_row['Total']} ({s_min_row['Golf Date'].strftime('%m/%d/%y')})",
+                    'Front 9 Avg': round(front_avg, 2) if not pd.isna(front_avg) else "N/A",
+                    'Back 9 Avg': round(back_avg, 2) if not pd.isna(back_avg) else "N/A"
+                })
+        
+        # All Time Row
+        tot_front = player_data[player_data['Front/Back'] == 'Front']['Total'].mean()
+        tot_back = player_data[player_data['Front/Back'] == 'Back']['Total'].mean()
+        season_rows.append({
+            'Season': 'All Time',
+            'Rounds': rounds_played,
+            'Avg Score': round(avg_score, 2),
+            'Lowest Round': f"{best_score} ({lowest_round_df['Golf Date'].strftime('%m/%d/%y')})",
+            'Front 9 Avg': round(tot_front, 2) if not pd.isna(tot_front) else "N/A",
+            'Back 9 Avg': round(tot_back, 2) if not pd.isna(tot_back) else "N/A"
+        })
+        
+        season_df = pd.DataFrame(season_rows)
+        st.dataframe(season_df, use_container_width=True, hide_index=True)
         
         col_split1, col_split2 = st.columns(2)
         with col_split1:
-            st.subheader("Course Breakdown")
-            front_avg = player_data[player_data['Front/Back'] == 'Front']['Total'].mean()
-            back_avg = player_data[player_data['Front/Back'] == 'Back']['Total'].mean()
-            
-            st.write(f"**Front 9 Avg:** {front_avg:.2f}" if not pd.isna(front_avg) else "**Front 9 Avg:** N/A")
-            st.write(f"**Back 9 Avg:** {back_avg:.2f}" if not pd.isna(back_avg) else "**Back 9 Avg:** N/A")
+            st.subheader("Course Breakdown (Current Filter)")
+            st.write(f"**Front 9 Avg:** {tot_front:.2f}" if not pd.isna(tot_front) else "**Front 9 Avg:** N/A")
+            st.write(f"**Back 9 Avg:** {tot_back:.2f}" if not pd.isna(tot_back) else "**Back 9 Avg:** N/A")
             
             hole_avgs = player_data[hole_columns].mean()
             st.write(f"**Best Hole:** {hole_avgs.idxmin()} ({hole_avgs.min():.2f} avg)")
@@ -130,10 +171,21 @@ if selected_player != "All Players":
             recent_5['Golf Date'] = recent_5['Golf Date'].dt.strftime('%m/%d/%Y')
             st.dataframe(recent_5, use_container_width=True, hide_index=True)
 
-        # Player Specific Charts
+        # Dynamic Scoring Trend (Altair removes winter months and sets custom Y-axis)
         st.subheader(f"{selected_player}'s Scoring Trend")
-        chart_data = player_data.sort_values('Golf Date').set_index('Golf Date')['Total']
-        st.line_chart(chart_data)
+        chart_data = player_data.sort_values('Golf Date').copy()
+        chart_data['Date Label'] = chart_data['Golf Date'].dt.strftime('%m/%d/%Y')
+        
+        min_y = max(0, chart_data['Total'].min() - 3)
+        max_y = chart_data['Total'].max() + 3
+        
+        line_chart = alt.Chart(chart_data).mark_line(point=True).encode(
+            x=alt.X('Date Label', sort=None, title='Round Date'),
+            y=alt.Y('Total', scale=alt.Scale(domain=[min_y, max_y]), title='Gross Score'),
+            tooltip=['Date Label', 'Front/Back', 'Total']
+        ).properties(height=400)
+        
+        st.altair_chart(line_chart, use_container_width=True)
         
     else:
         st.warning(f"No primary roster scores found for {selected_player} in the selected time frame.")
@@ -141,17 +193,36 @@ if selected_player != "All Players":
 else:
     # --- LEAGUE WIDE DASHBOARD ---
     st.header("League Handicaps", help="Calculated using the modern WHS differential formula.")
+    with st.expander("ℹ️ How are modern handicaps calculated?"):
+        st.markdown("""
+        **Modern WHS Calculation Breakdown:**
+        1. **Score Differential:** 
+           - **Front 9:** Rating = `34.0`, Slope = `118`
+           - **Back 9:** Rating = `35.0`, Slope = `125`
+           $$\\text{Differential} = \\frac{(\\text{Gross Score} - \\text{Course Rating}) \\times 113}{\\text{Slope Rating}}$$
+        2. **Modern WHS Sliding Scale & Adjustments:** Sliding scale applies standard negative adjustments (up to -2.0) for players with fewer than 20 rounds.
+        """)
+        
     st.dataframe(current_handicaps, use_container_width=True, hide_index=True)
 
     st.header("Player Profiles & Statistics")
     
     if not primary_scores.empty:
-        player_summary = primary_scores.groupby('Golfer Name').agg(
+        # Get lowest round with date for the overview table
+        lowest_rounds_dict = {}
+        grouped = primary_scores.groupby('Golfer Name')
+        for name, group in grouped:
+            best_row = group.sort_values(by=['Total', 'Golf Date'], ascending=[True, False]).iloc[0]
+            lowest_rounds_dict[name] = f"{best_row['Total']} ({best_row['Golf Date'].strftime('%m/%d/%y')})"
+            
+        player_summary = grouped.agg(
             Rounds_Played=('Total', 'count'),
             Average_Score=('Total', 'mean'),
-            Lowest_Round=('Total', 'min'),
             Highest_Round=('Total', 'max')
         ).reset_index()
+        
+        # Map the new lowest round string to the dataframe
+        player_summary.insert(3, 'Lowest_Round', player_summary['Golfer Name'].map(lowest_rounds_dict))
         
         player_summary['Average_Score'] = player_summary['Average_Score'].round(2)
         player_summary = player_summary.sort_values(by='Average_Score')
@@ -178,9 +249,19 @@ else:
             st.bar_chart(score_dist)
             
         st.subheader("League Scoring Trend (Daily Average)")
-        trend_data = primary_scores.sort_values('Golf Date')
-        chart_data = trend_data.groupby('Golf Date')['Total'].mean()
-        st.line_chart(chart_data)
+        trend_data = primary_scores.groupby('Golf Date')['Total'].mean().reset_index()
+        trend_data['Date Label'] = trend_data['Golf Date'].dt.strftime('%m/%d/%Y')
+        
+        min_y = max(0, trend_data['Total'].min() - 3)
+        max_y = trend_data['Total'].max() + 3
+        
+        league_chart = alt.Chart(trend_data).mark_line(point=True).encode(
+            x=alt.X('Date Label', sort=None, title='Round Date'),
+            y=alt.Y('Total', scale=alt.Scale(domain=[min_y, max_y]), title='Average Gross Score'),
+            tooltip=['Date Label', 'Total']
+        ).properties(height=400)
+        
+        st.altair_chart(league_chart, use_container_width=True)
 
     else:
         st.warning("No data available for the current filter selection.")
