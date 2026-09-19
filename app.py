@@ -140,7 +140,7 @@ back_handicaps = (
 )
 back_handicaps['Back 9 HCP'] = back_handicaps['Back 9 HCP'].astype(int)
 
-# Merge overall, front 9, and back 9 handicaps for league display (excluding Current Handicap Index column)
+# Merge overall, front 9, and back 9 handicaps for league display
 split_handicaps = (
     current_handicaps[['Golfer Name', 'Current Handicap Index']]
     .merge(front_handicaps, on='Golfer Name', how='left')
@@ -246,24 +246,15 @@ if selected_player != "All Players":
         lowest_round_df = player_data.sort_values(by=['Total', 'Golf Date'], ascending=[True, False]).iloc[0]
         best_score = lowest_round_df['Total']
         dt = lowest_round_df['Golf Date']
-        best_date_str = f"{dt.month}/{dt.day}/{dt.year}"
+        # Shortened date format for mobile
+        best_date_str = f"{dt.month}/{dt.day}/{dt.strftime('%y')}"
         
         player_hcp_row = current_handicaps[current_handicaps['Golfer Name'] == selected_player]
         player_hcp = player_hcp_row['Current Handicap Index'].values[0] if not player_hcp_row.empty else "N/A"
         
         col1.metric("Current Handicap", player_hcp)
         col2.metric("Career Avg Score", round(avg_score, 2))
-        
-        # Wrapped the Lowest Round in a container that mimics standard st.metric CSS
-        col3.markdown(f"""
-            <div data-testid="stMetric" style="background-color: rgba(28, 131, 246, 0.04); border: 1px solid rgba(28, 131, 246, 0.1); padding: 12px 15px; border-radius: 8px; margin-bottom: 10px;">
-                <div style="font-size: 14px; font-weight: 400; color: inherit; margin-bottom: 2px;">Lowest Round</div>
-                <div style="font-size: 2.25rem; font-weight: 600; line-height: 1.2; color: inherit;">
-                    {int(best_score)} <span style="font-size: 0.95rem; font-weight: 400; color: gray;">{best_date_str}</span>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-        
+        col3.metric("Lowest Round", f"{int(best_score)} ({best_date_str})")
         col4.metric("Rounds Played", rounds_played)
         
         st.markdown("---")
@@ -284,7 +275,7 @@ if selected_player != "All Players":
         with col_split2:
             st.subheader("Recent Form (Last 5 Rounds)")
             recent_5 = player_data.head(5)[['Golf Date', 'Front/Back', 'Total']].copy()
-            recent_5['Golf Date'] = recent_5['Golf Date'].dt.month.astype(str) + '/' + recent_5['Golf Date'].dt.day.astype(str) + '/' + recent_5['Golf Date'].dt.year.astype(str)
+            recent_5['Golf Date'] = recent_5['Golf Date'].dt.month.astype(str) + '/' + recent_5['Golf Date'].dt.day.astype(str) + '/' + recent_5['Golf Date'].dt.strftime('%y')
             st.dataframe(recent_5, use_container_width=True, hide_index=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
@@ -309,7 +300,7 @@ if selected_player != "All Players":
                 s_avg = y_df['Total'].mean()
                 s_min_row = y_df.sort_values(by=['Total', 'Golf Date'], ascending=[True, False]).iloc[0]
                 s_dt = s_min_row['Golf Date']
-                s_date_str = f"{s_dt.month}/{s_dt.day}/{s_dt.year}"
+                s_date_str = f"{s_dt.month}/{s_dt.day}/{s_dt.strftime('%y')}"
                 
                 front_avg = y_df[y_df['Front/Back'] == 'Front']['Total'].mean()
                 back_avg = y_df[y_df['Front/Back'] == 'Back']['Total'].mean()
@@ -340,7 +331,7 @@ if selected_player != "All Players":
         # Dynamic Scoring Trend
         st.subheader(f"{selected_player}'s Scoring Trend")
         chart_data = player_data.sort_values('Golf Date').copy()
-        chart_data['Date Label'] = chart_data['Golf Date'].dt.month.astype(str) + '/' + chart_data['Golf Date'].dt.day.astype(str) + '/' + chart_data['Golf Date'].dt.year.astype(str)
+        chart_data['Date Label'] = chart_data['Golf Date'].dt.month.astype(str) + '/' + chart_data['Golf Date'].dt.day.astype(str) + '/' + chart_data['Golf Date'].dt.strftime('%y')
         
         min_y = max(0, chart_data['Total'].min() - 3)
         max_y = chart_data['Total'].max() + 3
@@ -372,18 +363,14 @@ if selected_player != "All Players":
                 p_domain = [max(0, p_min - 0.1), p_max + 0.3]
                 
                 base_p = alt.Chart(p_chart_df).encode(
-                    x=alt.X('Par Type:N', sort=['Par 3', 'Par 4', 'Par 5'], title='Hole Type', 
-                            axis=alt.Axis(labelAngle=0, labelFontSize=12, labelFontWeight='bold')), # removed hardcoded black color
-                    y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=p_domain, zero=False), axis=None)
+                    x=alt.X('Par Type:N', sort=['Par 3', 'Par 4', 'Par 5'], title=None, axis=alt.Axis(labelAngle=0)),
+                    y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=p_domain, zero=False), title='Avg Over Par')
                 )
                 bars_p = base_p.mark_bar().encode(
                     color=alt.Color('Score Over Par:Q', legend=None, scale=alt.Scale(scheme='greens')),
                     tooltip=['Par Type', 'Score Over Par']
                 )
-                text_p = base_p.mark_text(align='center', baseline='bottom', dy=-6, fontSize=13, fontWeight='bold').encode(
-                    text=alt.Text('Score Over Par:Q', format='.2f')
-                ) # removed hardcoded black color
-                par_chart = (bars_p + text_p).properties(height=300).configure_view(stroke=None)
+                par_chart = bars_p.properties(height=300).configure_view(stroke=None)
                 st.altair_chart(par_chart, use_container_width=True, theme="streamlit")
                 
         with col_pan2:
@@ -399,18 +386,14 @@ if selected_player != "All Players":
                 d_domain = [0, d_max + 1.5]
                 
                 base_d = alt.Chart(disp_df).encode(
-                    x=alt.X('Score_Str:N', sort=disp_df['Score_Str'].tolist(), title='Gross Score', 
-                            axis=alt.Axis(labelAngle=0, labelFontSize=12, labelFontWeight='bold')), # removed hardcoded black color
-                    y=alt.Y('Frequency:Q', scale=alt.Scale(domain=d_domain, zero=True), axis=None)
+                    x=alt.X('Score_Str:N', sort=disp_df['Score_Str'].tolist(), title='Gross Score', axis=alt.Axis(labelAngle=0)),
+                    y=alt.Y('Frequency:Q', scale=alt.Scale(domain=d_domain, zero=True), title='Frequency', axis=alt.Axis(tickMinStep=1))
                 )
                 bars_d = base_d.mark_bar(width=35).encode(
                     color=alt.Color('Frequency:Q', legend=None, scale=alt.Scale(scheme='blues')),
                     tooltip=['Score', 'Frequency']
                 )
-                text_d = base_d.mark_text(align='center', baseline='bottom', dy=-6, fontSize=13, fontWeight='bold').encode(
-                    text=alt.Text('Frequency:Q')
-                ) # removed hardcoded black color
-                disp_chart = (bars_d + text_d).properties(height=300).configure_view(stroke=None)
+                disp_chart = bars_d.properties(height=300).configure_view(stroke=None)
                 st.altair_chart(disp_chart, use_container_width=True, theme="streamlit")
         
     else:
@@ -455,7 +438,7 @@ else:
         for name, group in grouped:
             best_row = group.sort_values(by=['Total', 'Golf Date'], ascending=[True, False]).iloc[0]
             b_dt = best_row['Golf Date']
-            lowest_rounds_dict[name] = f"{best_row['Total']} ({b_dt.month}/{b_dt.day}/{b_dt.year})"
+            lowest_rounds_dict[name] = f"{best_row['Total']} ({b_dt.month}/{b_dt.day}/{b_dt.strftime('%y')})"
             
         player_summary = grouped.agg(
             Rounds_Played=('Total', 'count'),
@@ -506,34 +489,28 @@ else:
             st.subheader("Front 9 Hole Difficulty (Over Par)")
             
             base_f = alt.Chart(front_over_par).encode(
-                x=alt.X('Hole:N', sort=hole_order, title='Hole', axis=alt.Axis(labelAngle=0)),
-                y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=front_domain, zero=False), axis=None)
+                x=alt.X('Hole:N', sort=hole_order, title=None, axis=alt.Axis(labelAngle=0)),
+                y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=front_domain, zero=False), title='Score Over Par')
             )
             bars_f = base_f.mark_bar().encode(
                 color=alt.Color('Score Over Par:Q', legend=None, scale=alt.Scale(scheme='blues')),
                 tooltip=['Hole', 'Score Over Par']
             )
-            text_f = base_f.mark_text(align='center', baseline='bottom', dy=-6, fontSize=13, fontWeight='bold').encode(
-                text=alt.Text('Score Over Par:Q', format='.2f')
-            )
-            front_chart = (bars_f + text_f).properties(height=380)
+            front_chart = bars_f.properties(height=380).configure_view(stroke=None)
             st.altair_chart(front_chart, use_container_width=True, theme="streamlit")
             
         with col2:
             st.subheader("Back 9 Hole Difficulty (Over Par)")
             
             base_b = alt.Chart(back_over_par).encode(
-                x=alt.X('Hole:N', sort=hole_order, title='Hole', axis=alt.Axis(labelAngle=0)),
-                y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=back_domain, zero=False), axis=None)
+                x=alt.X('Hole:N', sort=hole_order, title=None, axis=alt.Axis(labelAngle=0)),
+                y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=back_domain, zero=False), title='Score Over Par')
             )
             bars_b = base_b.mark_bar().encode(
                 color=alt.Color('Score Over Par:Q', legend=None, scale=alt.Scale(scheme='oranges')),
                 tooltip=['Hole', 'Score Over Par']
             )
-            text_b = base_b.mark_text(align='center', baseline='bottom', dy=-6, fontSize=13, fontWeight='bold').encode(
-                text=alt.Text('Score Over Par:Q', format='.2f')
-            )
-            back_chart = (bars_b + text_b).properties(height=380)
+            back_chart = bars_b.properties(height=380).configure_view(stroke=None)
             st.altair_chart(back_chart, use_container_width=True, theme="streamlit")
             
         st.markdown("<br>", unsafe_allow_html=True)
@@ -548,7 +525,7 @@ else:
         # League Scoring Trend at the top/middle, moving analytics below it
         st.subheader("League Scoring Trend (Daily Average)")
         trend_data = primary_scores.groupby('Golf Date')['Total'].mean().reset_index()
-        trend_data['Date Label'] = trend_data['Golf Date'].dt.month.astype(str) + '/' + trend_data['Golf Date'].dt.day.astype(str) + '/' + trend_data['Golf Date'].dt.year.astype(str)
+        trend_data['Date Label'] = trend_data['Golf Date'].dt.month.astype(str) + '/' + trend_data['Golf Date'].dt.day.astype(str) + '/' + trend_data['Golf Date'].dt.strftime('%y')
         
         min_y = max(0, trend_data['Total'].min() - 3)
         max_y = trend_data['Total'].max() + 3
