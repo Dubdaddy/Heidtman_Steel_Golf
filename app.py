@@ -262,15 +262,59 @@ if selected_player != "All Players":
         col_split1, col_split2 = st.columns(2)
         with col_split1:
             st.subheader("Course Breakdown")
-            tot_front = player_data[player_data['Front/Back'] == 'Front']['Total'].mean()
-            tot_back = player_data[player_data['Front/Back'] == 'Back']['Total'].mean()
             
-            st.write(f"**Front 9 Avg:** {tot_front:.2f}" if not pd.isna(tot_front) else "**Front 9 Avg:** N/A")
-            st.write(f"**Back 9 Avg:** {tot_back:.2f}" if not pd.isna(tot_back) else "**Back 9 Avg:** N/A")
+            front_data = player_data[player_data['Front/Back'] == 'Front']
+            back_data = player_data[player_data['Front/Back'] == 'Back']
             
-            hole_avgs = player_data[hole_columns].mean()
-            st.write(f"**Best Hole:** {hole_avgs.idxmin()} ({hole_avgs.min():.2f} avg)")
-            st.write(f"**Hardest Hole:** {hole_avgs.idxmax()} ({hole_avgs.max():.2f} avg)")
+            tot_front = front_data['Total'].mean()
+            tot_back = back_data['Total'].mean()
+            
+            # Nested columns to sit side-by-side inside col_split1
+            cb_col1, cb_col2 = st.columns(2)
+            
+            with cb_col1:
+                st.markdown("**Front 9**")
+                st.write(f"**Avg Score:** {tot_front:.2f}" if not pd.isna(tot_front) else "**Avg Score:** N/A")
+                
+                if not front_data.empty:
+                    # Subtract par to get over/under numbers
+                    f_over_par = front_data[hole_columns].mean().sub(pd.Series(FRONT_PARS))
+                    best_f = f_over_par.idxmin()
+                    hardest_f = f_over_par.idxmax()
+                    
+                    # Format with explicit '+' for over par
+                    best_f_str = f"+{f_over_par[best_f]:.2f}" if f_over_par[best_f] > 0 else f"{f_over_par[best_f]:.2f}"
+                    hardest_f_str = f"+{f_over_par[hardest_f]:.2f}" if f_over_par[hardest_f] > 0 else f"{f_over_par[hardest_f]:.2f}"
+                    
+                    st.write(f"**Best Hole:** {best_f} ({best_f_str})")
+                    st.write(f"**Hardest Hole:** {hardest_f} ({hardest_f_str})")
+                else:
+                    st.write("**Best Hole:** N/A")
+                    st.write("**Hardest Hole:** N/A")
+                    
+            with cb_col2:
+                st.markdown("**Back 9**")
+                st.write(f"**Avg Score:** {tot_back:.2f}" if not pd.isna(tot_back) else "**Avg Score:** N/A")
+                
+                if not back_data.empty:
+                    # Subtract par to get over/under numbers
+                    b_over_par = back_data[hole_columns].mean().sub(pd.Series(BACK_PARS))
+                    best_b = b_over_par.idxmin()
+                    hardest_b = b_over_par.idxmax()
+                    
+                    # Format with explicit '+' for over par
+                    best_b_str = f"+{b_over_par[best_b]:.2f}" if b_over_par[best_b] > 0 else f"{b_over_par[best_b]:.2f}"
+                    hardest_b_str = f"+{b_over_par[hardest_b]:.2f}" if b_over_par[hardest_b] > 0 else f"{b_over_par[hardest_b]:.2f}"
+                    
+                    # Shift naming to map to actual Back 9 holes (Hole 10-18)
+                    best_b_display = f"Hole {int(best_b.split(' ')[1]) + 9}"
+                    hardest_b_display = f"Hole {int(hardest_b.split(' ')[1]) + 9}"
+                    
+                    st.write(f"**Best Hole:** {best_b_display} ({best_b_str})")
+                    st.write(f"**Hardest Hole:** {hardest_b_display} ({hardest_b_str})")
+                else:
+                    st.write("**Best Hole:** N/A")
+                    st.write("**Hardest Hole:** N/A")
             
         with col_split2:
             st.subheader("Recent Form (Last 5 Rounds)")
