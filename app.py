@@ -83,9 +83,9 @@ current_handicaps = (
 current_handicaps['Current Handicap Index'] = current_handicaps['Current Handicap Index'].astype(int)
 current_handicaps = current_handicaps.sort_values('Current Handicap Index')
 
-# Split into Members and Non Members
+# Split into Members and Former Members
 members_hcp = current_handicaps[current_handicaps['Golfer Name'].isin(members_set)].reset_index(drop=True)
-non_members_hcp = current_handicaps[~current_handicaps['Golfer Name'].isin(members_set)].reset_index(drop=True)
+former_members_hcp = current_handicaps[~current_handicaps['Golfer Name'].isin(members_set)].reset_index(drop=True)
 
 primary_scores = filtered_df[filtered_df['Had Sub?'] == 'No']
 hole_columns = ['Hole 1', 'Hole 2', 'Hole 3', 'Hole 4', 'Hole 5', 'Hole 6', 'Hole 7', 'Hole 8', 'Hole 9']
@@ -362,8 +362,8 @@ else:
         st.subheader("Members")
         st.dataframe(members_hcp, use_container_width=True, hide_index=True)
     with h_col2:
-        st.subheader("Non Members")
-        st.dataframe(non_members_hcp, use_container_width=True, hide_index=True)
+        st.subheader("Former Members")
+        st.dataframe(former_members_hcp, use_container_width=True, hide_index=True)
 
     st.header("Player Profiles & Statistics")
     
