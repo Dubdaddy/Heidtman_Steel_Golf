@@ -33,38 +33,8 @@ if selected_player != "All Players":
 
 # --- MAIN DASHBOARD AREA ---
 st.title("Heidtman Steel Golf League Dashboard")
-st.markdown("Welcome to the league stat tracker.")
 
-# --- PHASE 3: DYNAMIC HANDICAP TRACKER ---
-st.header("League Handicaps", help="Click the info box below to see the modern WHS differential formula.")
-
-with st.expander("ℹ️ How are modern handicaps calculated?"):
-    st.markdown("""
-    **Modern WHS Calculation Breakdown:**
-    
-    1. **Score Differential:** 
-       - **Front 9:** Rating = `34.0`, Slope = `118`
-       - **Back 9:** Rating = `35.0`, Slope = `125`
-       
-       $$\\text{Differential} = \\frac{(\\text{Gross Score} - \\text{Course Rating}) \\times 113}{\\text{Slope Rating}}$$
-       
-    2. **Modern WHS Sliding Scale & Adjustments:** 
-       - **3 scores:** Lowest 1 differential ($-2.0$ adjustment)
-       - **4 scores:** Lowest 1 differential ($-1.0$ adjustment)
-       - **5 scores:** Lowest 1 differential 
-       - **6 scores:** Average of lowest 2 ($-1.0$ adjustment)
-       - **7-8 scores:** Average of lowest 2 
-       - **9-11 scores:** Average of lowest 3
-       - **12-14 scores:** Average of lowest 4
-       - **15-16 scores:** Average of lowest 5
-       - **17-18 scores:** Average of lowest 6
-       - **19 scores:** Average of lowest 7
-       - **20 scores:** Average of lowest 8
-       
-    3. **Final Index:** 
-       The 0.96 legacy multiplier has been eliminated. The raw average (plus any adjustment) forms the index, truncated to a whole integer for league play.
-    """)
-
+# --- DYNAMIC HANDICAP TRACKER (Modern WHS) ---
 hcp_df = df[df['Had Sub?'] == 'No'].copy()
 
 def calculate_differential(row):
@@ -83,22 +53,13 @@ hcp_df['Differential'] = hcp_df.apply(calculate_differential, axis=1)
 def get_handicap(player_rounds):
     recent_rounds = player_rounds.sort_values(by='Golf Date', ascending=False).head(20)
     rounds_played = len(recent_rounds)
-    
-    if rounds_played < 3:
-        return None
+    if rounds_played < 3: return None
         
     adjustment = 0.0
-    if rounds_played == 3: 
-        count = 1
-        adjustment = -2.0
-    elif rounds_played == 4: 
-        count = 1
-        adjustment = -1.0
-    elif rounds_played == 5: 
-        count = 1
-    elif rounds_played == 6: 
-        count = 2
-        adjustment = -1.0
+    if rounds_played == 3: count = 1; adjustment = -2.0
+    elif rounds_played == 4: count = 1; adjustment = -1.0
+    elif rounds_played == 5: count = 1
+    elif rounds_played == 6: count = 2; adjustment = -1.0
     elif rounds_played <= 8: count = 2
     elif rounds_played <= 11: count = 3
     elif rounds_played <= 14: count = 4
@@ -108,10 +69,7 @@ def get_handicap(player_rounds):
     else: count = 8
         
     best_diffs = recent_rounds.nsmallest(count, 'Differential')
-    
-    # Modern WHS Index
     handicap_index = (best_diffs['Differential'].mean()) + adjustment
-    
     return max(0, int(handicap_index)) 
 
 current_handicaps = (
@@ -120,63 +78,109 @@ current_handicaps = (
     .dropna()
     .reset_index(name='Current Handicap Index')
 )
-
 current_handicaps['Current Handicap Index'] = current_handicaps['Current Handicap Index'].astype(int)
 current_handicaps = current_handicaps.sort_values('Current Handicap Index')
 
-st.dataframe(current_handicaps, use_container_width=True, hide_index=True)
-
-
-# --- PHASE 2: CORE METRICS & ANALYTICS ---
-st.header("Player Profiles & Statistics")
 primary_scores = filtered_df[filtered_df['Had Sub?'] == 'No']
+hole_columns = ['Hole 1', 'Hole 2', 'Hole 3', 'Hole 4', 'Hole 5', 'Hole 6', 'Hole 7', 'Hole 8', 'Hole 9']
 
-if not primary_scores.empty:
-    player_summary = primary_scores.groupby('Golfer Name').agg(
-        Rounds_Played=('Total', 'count'),
-        Average_Score=('Total', 'mean'),
-        Lowest_Round=('Total', 'min'),
-        Highest_Round=('Total', 'max')
-    ).reset_index()
-    
-    player_summary['Average_Score'] = player_summary['Average_Score'].round(2)
-    player_summary = player_summary.sort_values(by='Average_Score')
-    
-    st.subheader("Performance Overview")
-    st.dataframe(player_summary, use_container_width=True, hide_index=True)
 
-    st.subheader("Hole-by-Hole Scoring Averages")
-    hole_columns = ['Hole 1', 'Hole 2', 'Hole 3', 'Hole 4', 'Hole 5', 'Hole 6', 'Hole 7', 'Hole 8', 'Hole 9']
-    hole_averages = primary_scores.groupby('Golfer Name')[hole_columns].mean().round(2).reset_index()
+# ==========================================
+# UI RENDERING LOGIC (Player Profile vs League)
+# ==========================================
+
+if selected_player != "All Players":
+    # --- INDIVIDUAL PLAYER PROFILE ---
+    st.header(f"🏌️ Player Profile: {selected_player}")
+    player_data = primary_scores.sort_values(by='Golf Date', ascending=False)
     
-    st.dataframe(hole_averages, use_container_width=True, hide_index=True)
-    
-    # --- PHASE 4: VISUALIZATIONS & TRENDS ---
-    st.header("Visualizations & Trends")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("Hole Difficulty (Average Score)")
-        hole_diff = primary_scores[hole_columns].mean().rename("Average Score")
-        st.bar_chart(hole_diff)
+    if not player_data.empty:
+        col1, col2, col3, col4 = st.columns(4)
         
-    with col2:
-        st.subheader("Score Distribution")
-        score_dist = primary_scores['Total'].value_counts().sort_index()
-        st.bar_chart(score_dist)
+        rounds_played = len(player_data)
+        avg_score = player_data['Total'].mean()
+        best_score = player_data['Total'].min()
         
-    st.subheader("Scoring Trend Over Time")
-    trend_data = primary_scores.sort_values('Golf Date')
-    
-    if selected_player != "All Players":
-        # Plot individual player's scores chronologically
-        chart_data = trend_data.set_index('Golf Date')['Total']
+        player_hcp_row = current_handicaps[current_handicaps['Golfer Name'] == selected_player]
+        player_hcp = player_hcp_row['Current Handicap Index'].values[0] if not player_hcp_row.empty else "N/A"
+        
+        col1.metric("Current Handicap", player_hcp)
+        col2.metric("Career Avg Score", round(avg_score, 2))
+        col3.metric("Lowest Round", int(best_score))
+        col4.metric("Rounds Played", rounds_played)
+        
+        st.markdown("---")
+        
+        col_split1, col_split2 = st.columns(2)
+        with col_split1:
+            st.subheader("Course Breakdown")
+            front_avg = player_data[player_data['Front/Back'] == 'Front']['Total'].mean()
+            back_avg = player_data[player_data['Front/Back'] == 'Back']['Total'].mean()
+            
+            st.write(f"**Front 9 Avg:** {front_avg:.2f}" if not pd.isna(front_avg) else "**Front 9 Avg:** N/A")
+            st.write(f"**Back 9 Avg:** {back_avg:.2f}" if not pd.isna(back_avg) else "**Back 9 Avg:** N/A")
+            
+            hole_avgs = player_data[hole_columns].mean()
+            st.write(f"**Best Hole:** {hole_avgs.idxmin()} ({hole_avgs.min():.2f} avg)")
+            st.write(f"**Hardest Hole:** {hole_avgs.idxmax()} ({hole_avgs.max():.2f} avg)")
+            
+        with col_split2:
+            st.subheader("Recent Form (Last 5 Rounds)")
+            recent_5 = player_data.head(5)[['Golf Date', 'Front/Back', 'Total']].copy()
+            recent_5['Golf Date'] = recent_5['Golf Date'].dt.strftime('%m/%d/%Y')
+            st.dataframe(recent_5, use_container_width=True, hide_index=True)
+
+        # Player Specific Charts
+        st.subheader(f"{selected_player}'s Scoring Trend")
+        chart_data = player_data.sort_values('Golf Date').set_index('Golf Date')['Total']
         st.line_chart(chart_data)
+        
     else:
-        # Plot the league average per day to avoid a messy chart
+        st.warning(f"No primary roster scores found for {selected_player} in the selected time frame.")
+
+else:
+    # --- LEAGUE WIDE DASHBOARD ---
+    st.header("League Handicaps", help="Calculated using the modern WHS differential formula.")
+    st.dataframe(current_handicaps, use_container_width=True, hide_index=True)
+
+    st.header("Player Profiles & Statistics")
+    
+    if not primary_scores.empty:
+        player_summary = primary_scores.groupby('Golfer Name').agg(
+            Rounds_Played=('Total', 'count'),
+            Average_Score=('Total', 'mean'),
+            Lowest_Round=('Total', 'min'),
+            Highest_Round=('Total', 'max')
+        ).reset_index()
+        
+        player_summary['Average_Score'] = player_summary['Average_Score'].round(2)
+        player_summary = player_summary.sort_values(by='Average_Score')
+        
+        st.subheader("Performance Overview")
+        st.dataframe(player_summary, use_container_width=True, hide_index=True)
+
+        st.subheader("Hole-by-Hole Scoring Averages")
+        hole_averages = primary_scores.groupby('Golfer Name')[hole_columns].mean().round(2).reset_index()
+        st.dataframe(hole_averages, use_container_width=True, hide_index=True)
+        
+        # --- PHASE 4: VISUALIZATIONS & TRENDS ---
+        st.header("Visualizations & Trends")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("League Hole Difficulty")
+            hole_diff = primary_scores[hole_columns].mean().rename("Average Score")
+            st.bar_chart(hole_diff)
+            
+        with col2:
+            st.subheader("League Score Distribution")
+            score_dist = primary_scores['Total'].value_counts().sort_index()
+            st.bar_chart(score_dist)
+            
+        st.subheader("League Scoring Trend (Daily Average)")
+        trend_data = primary_scores.sort_values('Golf Date')
         chart_data = trend_data.groupby('Golf Date')['Total'].mean()
         st.line_chart(chart_data)
 
-else:
-    st.warning("No data available for the current filter selection.")
+    else:
+        st.warning("No data available for the current filter selection.")
