@@ -49,8 +49,33 @@ st.title("Heidtman Steel Golf League Dashboard")
 st.markdown("Welcome to the league stat tracker.")
 
 # --- PHASE 3: DYNAMIC HANDICAP TRACKER ---
-st.header("League Handicaps")
-st.markdown("Calculated dynamically using USGA legacy formulas (Best 8 of Last 20 Differentials).")
+st.header("League Handicaps", help="Click the info box below to see the exact differential formula and sliding scale.")
+
+# Explanatory info box / expander
+with st.expander("ℹ️ How are handicaps calculated?"):
+    st.markdown("""
+    **Handicap Calculation Breakdown:**
+    
+    1. **Score Differential:** Each round's 9-hole differential is calculated using The Legacy Golf Club's rating and slope:
+       - **Front 9:** Rating = `34.0`, Slope = `118`
+       - **Back 9:** Rating = `35.0`, Slope = `125`
+       
+       $$\\text{Differential} = \\frac{(\\text{Gross Score} - \\text{Course Rating}) \\times 113}{\\text{Slope Rating}}$$
+       
+    2. **Sliding Scale Selection:** The algorithm evaluates up to a player's last 20 primary rounds:
+       - **3–5 rounds:** Lowest 1 differential
+       - **6–8 rounds:** Lowest 2 differentials
+       - **9–11 rounds:** Lowest 3 differentials
+       - **12–14 rounds:** Lowest 4 differentials
+       - **15–16 rounds:** Lowest 5 differentials
+       - **17–18 rounds:** Lowest 6 differentials
+       - **19 rounds:** Lowest 7 differentials
+       - **20 rounds:** Lowest 8 differentials
+       
+    3. **Final Calculation:** 
+       $$\\text{Handicap Index} = (\\text{Average of Lowest Differentials}) \\times 0.96$$
+       *The index is truncated to a whole integer for league strokes.*
+    """)
 
 # We use the unfiltered dataframe for handicaps so it always looks at the last 20 rounds 
 # regardless of what year is selected in the sidebar, ensuring handicaps are current.
