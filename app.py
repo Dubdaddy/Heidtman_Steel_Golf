@@ -282,7 +282,7 @@ else:
         # --- PHASE 4: VISUALIZATIONS & TRENDS ---
         st.header("Visualizations & Trends")
         
-        # Side-by-side Dynamic Over-Par Hole Difficulty Charts
+        # Side-by-side Dynamic Over-Par Hole Difficulty Charts with tight Y-domains for amplitude
         col1, col2 = st.columns(2)
         
         front_scores = primary_scores[primary_scores['Front/Back'] == 'Front']
@@ -294,11 +294,18 @@ else:
         back_over_par = back_scores[hole_columns].mean().sub(pd.Series(BACK_PARS)).round(2).reset_index()
         back_over_par.columns = ['Hole', 'Score Over Par']
         
+        # Calculate dynamic domain bounds to maximize amplitude and clip lower empty space
+        f_min, f_max = front_over_par['Score Over Par'].min(), front_over_par['Score Over Par'].max()
+        b_min, b_max = back_over_par['Score Over Par'].min(), back_over_par['Score Over Par'].max()
+        
+        front_domain = [max(0, f_min - 0.15), f_max + 0.1]
+        back_domain = [max(0, b_min - 0.15), b_max + 0.1]
+        
         with col1:
             st.subheader("Front 9 Hole Difficulty (Over Par)")
             front_chart = alt.Chart(front_over_par).mark_bar().encode(
                 x=alt.X('Hole:N', sort=None, title='Hole'),
-                y=alt.Y('Score Over Par:Q', title='Strokes Over Par'),
+                y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=front_domain, zero=False), title='Strokes Over Par'),
                 color=alt.Color('Score Over Par:Q', legend=None, scale=alt.Scale(scheme='blues')),
                 tooltip=['Hole', 'Score Over Par']
             ).properties(height=350)
@@ -308,7 +315,7 @@ else:
             st.subheader("Back 9 Hole Difficulty (Over Par)")
             back_chart = alt.Chart(back_over_par).mark_bar().encode(
                 x=alt.X('Hole:N', sort=None, title='Hole'),
-                y=alt.Y('Score Over Par:Q', title='Strokes Over Par'),
+                y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=back_domain, zero=False), title='Strokes Over Par'),
                 color=alt.Color('Score Over Par:Q', legend=None, scale=alt.Scale(scheme='oranges')),
                 tooltip=['Hole', 'Score Over Par']
             ).properties(height=350)
@@ -333,7 +340,7 @@ else:
         
         league_chart = alt.Chart(trend_data).mark_line(point=True).encode(
             x=alt.X('Date Label', sort=None, title='Round Date'),
-            y=alt.Y('Total', scale=alt.Scale(domain=[min_y, max_y]), title='Average Gross Score'),
+            y=alt.Y('Total', scale=alt.Scale(domain=[min_y, max_y], zero=False), title='Average Gross Score'),
             tooltip=['Date Label', 'Total']
         ).properties(height=400)
         
