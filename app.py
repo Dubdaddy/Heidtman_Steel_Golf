@@ -253,12 +253,17 @@ if selected_player != "All Players":
         
         col1.metric("Current Handicap", player_hcp)
         col2.metric("Career Avg Score", round(avg_score, 2))
+        
+        # Wrapped the Lowest Round in a container that mimics standard st.metric CSS
         col3.markdown(f"""
-            <div style="font-size: 14px; font-weight: 400; color: rgb(49, 51, 63); margin-bottom: 2px;">Lowest Round</div>
-            <div style="font-size: 2.25rem; font-weight: 600; line-height: 1.2;">
-                {int(best_score)} <span style="font-size: 0.95rem; font-weight: 400; color: gray;">{best_date_str}</span>
+            <div data-testid="stMetric" style="background-color: rgba(28, 131, 246, 0.04); border: 1px solid rgba(28, 131, 246, 0.1); padding: 12px 15px; border-radius: 8px; margin-bottom: 10px;">
+                <div style="font-size: 14px; font-weight: 400; color: inherit; margin-bottom: 2px;">Lowest Round</div>
+                <div style="font-size: 2.25rem; font-weight: 600; line-height: 1.2; color: inherit;">
+                    {int(best_score)} <span style="font-size: 0.95rem; font-weight: 400; color: gray;">{best_date_str}</span>
+                </div>
             </div>
         """, unsafe_allow_html=True)
+        
         col4.metric("Rounds Played", rounds_played)
         
         st.markdown("---")
@@ -346,7 +351,7 @@ if selected_player != "All Players":
             tooltip=['Date Label', 'Front/Back', 'Total']
         ).properties(height=400)
         
-        st.altair_chart(line_chart, use_container_width=True)
+        st.altair_chart(line_chart, use_container_width=True, theme="streamlit")
         
         st.markdown("<br>", unsafe_allow_html=True)
         
@@ -368,18 +373,18 @@ if selected_player != "All Players":
                 
                 base_p = alt.Chart(p_chart_df).encode(
                     x=alt.X('Par Type:N', sort=['Par 3', 'Par 4', 'Par 5'], title='Hole Type', 
-                            axis=alt.Axis(labelAngle=0, labelFontSize=12, labelFontWeight='bold', labelColor='black', titleColor='black')),
+                            axis=alt.Axis(labelAngle=0, labelFontSize=12, labelFontWeight='bold')), # removed hardcoded black color
                     y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=p_domain, zero=False), axis=None)
                 )
                 bars_p = base_p.mark_bar().encode(
                     color=alt.Color('Score Over Par:Q', legend=None, scale=alt.Scale(scheme='greens')),
                     tooltip=['Par Type', 'Score Over Par']
                 )
-                text_p = base_p.mark_text(align='center', baseline='bottom', dy=-6, fontSize=13, fontWeight='bold', color='black').encode(
+                text_p = base_p.mark_text(align='center', baseline='bottom', dy=-6, fontSize=13, fontWeight='bold').encode(
                     text=alt.Text('Score Over Par:Q', format='.2f')
-                )
+                ) # removed hardcoded black color
                 par_chart = (bars_p + text_p).properties(height=300).configure_view(stroke=None)
-                st.altair_chart(par_chart, use_container_width=True)
+                st.altair_chart(par_chart, use_container_width=True, theme="streamlit")
                 
         with col_pan2:
             st.subheader("Score Dispersion (Frequency)")
@@ -395,18 +400,18 @@ if selected_player != "All Players":
                 
                 base_d = alt.Chart(disp_df).encode(
                     x=alt.X('Score_Str:N', sort=disp_df['Score_Str'].tolist(), title='Gross Score', 
-                            axis=alt.Axis(labelAngle=0, labelFontSize=12, labelFontWeight='bold', labelColor='black', titleColor='black')),
+                            axis=alt.Axis(labelAngle=0, labelFontSize=12, labelFontWeight='bold')), # removed hardcoded black color
                     y=alt.Y('Frequency:Q', scale=alt.Scale(domain=d_domain, zero=True), axis=None)
                 )
                 bars_d = base_d.mark_bar(width=35).encode(
                     color=alt.Color('Frequency:Q', legend=None, scale=alt.Scale(scheme='blues')),
                     tooltip=['Score', 'Frequency']
                 )
-                text_d = base_d.mark_text(align='center', baseline='bottom', dy=-6, fontSize=13, fontWeight='bold', color='black').encode(
+                text_d = base_d.mark_text(align='center', baseline='bottom', dy=-6, fontSize=13, fontWeight='bold').encode(
                     text=alt.Text('Frequency:Q')
-                )
+                ) # removed hardcoded black color
                 disp_chart = (bars_d + text_d).properties(height=300).configure_view(stroke=None)
-                st.altair_chart(disp_chart, use_container_width=True)
+                st.altair_chart(disp_chart, use_container_width=True, theme="streamlit")
         
     else:
         st.warning(f"No primary roster scores found for {selected_player}.")
@@ -512,7 +517,7 @@ else:
                 text=alt.Text('Score Over Par:Q', format='.2f')
             )
             front_chart = (bars_f + text_f).properties(height=380)
-            st.altair_chart(front_chart, use_container_width=True)
+            st.altair_chart(front_chart, use_container_width=True, theme="streamlit")
             
         with col2:
             st.subheader("Back 9 Hole Difficulty (Over Par)")
@@ -529,7 +534,7 @@ else:
                 text=alt.Text('Score Over Par:Q', format='.2f')
             )
             back_chart = (bars_b + text_b).properties(height=380)
-            st.altair_chart(back_chart, use_container_width=True)
+            st.altair_chart(back_chart, use_container_width=True, theme="streamlit")
             
         st.markdown("<br>", unsafe_allow_html=True)
             
@@ -554,7 +559,7 @@ else:
             tooltip=['Date Label', 'Total']
         ).properties(height=400)
         
-        st.altair_chart(league_chart, use_container_width=True)
+        st.altair_chart(league_chart, use_container_width=True, theme="streamlit")
         
         st.markdown("<br>", unsafe_allow_html=True)
         
