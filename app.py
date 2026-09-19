@@ -117,6 +117,27 @@ if selected_player != "All Players":
         st.markdown(f"*Lowest Round Date: **{best_date_str}***")
         st.markdown("---")
         
+        col_split1, col_split2 = st.columns(2)
+        with col_split1:
+            st.subheader("Course Breakdown (Current Filter)")
+            tot_front = player_data[player_data['Front/Back'] == 'Front']['Total'].mean()
+            tot_back = player_data[player_data['Front/Back'] == 'Back']['Total'].mean()
+            
+            st.write(f"**Front 9 Avg:** {tot_front:.2f}" if not pd.isna(tot_front) else "**Front 9 Avg:** N/A")
+            st.write(f"**Back 9 Avg:** {tot_back:.2f}" if not pd.isna(tot_back) else "**Back 9 Avg:** N/A")
+            
+            hole_avgs = player_data[hole_columns].mean()
+            st.write(f"**Best Hole:** {hole_avgs.idxmin()} ({hole_avgs.min():.2f} avg)")
+            st.write(f"**Hardest Hole:** {hole_avgs.idxmax()} ({hole_avgs.max():.2f} avg)")
+            
+        with col_split2:
+            st.subheader("Recent Form (Last 5 Rounds)")
+            recent_5 = player_data.head(5)[['Golf Date', 'Front/Back', 'Total']].copy()
+            recent_5['Golf Date'] = recent_5['Golf Date'].dt.strftime('%m/%d/%Y')
+            st.dataframe(recent_5, use_container_width=True, hide_index=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        
         # SEASON OVER SEASON TABLE
         st.subheader("Season-over-Season Performance")
         season_rows = []
@@ -141,8 +162,6 @@ if selected_player != "All Players":
                 })
         
         # All Time Row
-        tot_front = player_data[player_data['Front/Back'] == 'Front']['Total'].mean()
-        tot_back = player_data[player_data['Front/Back'] == 'Back']['Total'].mean()
         season_rows.append({
             'Season': 'All Time',
             'Rounds': rounds_played,
@@ -155,21 +174,7 @@ if selected_player != "All Players":
         season_df = pd.DataFrame(season_rows)
         st.dataframe(season_df, use_container_width=True, hide_index=True)
         
-        col_split1, col_split2 = st.columns(2)
-        with col_split1:
-            st.subheader("Course Breakdown (Current Filter)")
-            st.write(f"**Front 9 Avg:** {tot_front:.2f}" if not pd.isna(tot_front) else "**Front 9 Avg:** N/A")
-            st.write(f"**Back 9 Avg:** {tot_back:.2f}" if not pd.isna(tot_back) else "**Back 9 Avg:** N/A")
-            
-            hole_avgs = player_data[hole_columns].mean()
-            st.write(f"**Best Hole:** {hole_avgs.idxmin()} ({hole_avgs.min():.2f} avg)")
-            st.write(f"**Hardest Hole:** {hole_avgs.idxmax()} ({hole_avgs.max():.2f} avg)")
-            
-        with col_split2:
-            st.subheader("Recent Form (Last 5 Rounds)")
-            recent_5 = player_data.head(5)[['Golf Date', 'Front/Back', 'Total']].copy()
-            recent_5['Golf Date'] = recent_5['Golf Date'].dt.strftime('%m/%d/%Y')
-            st.dataframe(recent_5, use_container_width=True, hide_index=True)
+        st.markdown("<br>", unsafe_allow_html=True)
 
         # Dynamic Scoring Trend (Altair removes winter months and sets custom Y-axis)
         st.subheader(f"{selected_player}'s Scoring Trend")
