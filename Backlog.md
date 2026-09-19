@@ -16,8 +16,7 @@ Back 9, and Year selection buttons
 
 \- Par 3  vs 4 vs 5, better title, show the Column labels and data labels
 
-* Head to Head tables, Team vs Team schedules requires
-* 
+\- Head to Head tables, Team vs Team schedules requires 
 
 
 
