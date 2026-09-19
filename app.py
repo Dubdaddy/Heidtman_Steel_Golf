@@ -59,9 +59,6 @@ with st.expander("ℹ️ How are modern handicaps calculated?"):
        - **17-18 scores:** Average of lowest 6
        - **19 scores:** Average of lowest 7
        - **20 scores:** Average of lowest 8
-       
-    3. **Final Index:** 
-       The 0.96 legacy multiplier has been eliminated. The raw average (plus any adjustment) forms the index, truncated to a whole integer for league play.
     """)
 
 hcp_df = df[df['Had Sub?'] == 'No'].copy()
