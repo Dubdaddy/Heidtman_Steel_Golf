@@ -302,34 +302,31 @@ if selected_player != "All Players":
                 st.altair_chart(par_chart, use_container_width=True)
                 
         with col_pan2:
-            st.subheader("Scoring Volatility Index (Floor & Ceiling)")
+            st.subheader("Score Dispersion (Frequency)")
             scores_list = player_data['Total'].dropna()
             if not scores_list.empty:
-                best_floor = int(scores_list.min())
-                career_avg = round(scores_list.mean(), 2)
-                worst_ceiling = int(scores_list.max())
+                # Group and count occurrences of each score
+                disp_df = scores_list.value_counts().reset_index()
+                disp_df.columns = ['Score', 'Frequency']
+                disp_df = disp_df.sort_values('Score')
+                disp_df['Score_Str'] = disp_df['Score'].astype(str)
                 
-                vol_chart_df = pd.DataFrame({
-                    'Metric': ['Best (Floor)', 'Average', 'Worst (Ceiling)'],
-                    'Score': [best_floor, career_avg, worst_ceiling]
-                })
+                d_min, d_max = disp_df['Frequency'].min(), disp_df['Frequency'].max()
+                d_domain = [0, d_max + 1.5]
                 
-                v_min, v_max = vol_chart_df['Score'].min(), vol_chart_df['Score'].max()
-                v_domain = [max(0, v_min - 3), v_max + 3]
-                
-                base_v = alt.Chart(vol_chart_df).encode(
-                    x=alt.X('Metric:N', sort=['Best (Floor)', 'Average', 'Worst (Ceiling)'], title='Scoring Spread', axis=alt.Axis(labelAngle=0)),
-                    y=alt.Y('Score:Q', scale=alt.Scale(domain=v_domain, zero=False), axis=None)
+                base_d = alt.Chart(disp_df).encode(
+                    x=alt.X('Score_Str:N', sort=disp_df['Score_Str'].tolist(), title='Gross Score', axis=alt.Axis(labelAngle=0)),
+                    y=alt.Y('Frequency:Q', scale=alt.Scale(domain=d_domain, zero=True), axis=None)
                 )
-                bars_v = base_v.mark_bar(width=45).encode(
-                    color=alt.Color('Metric:N', legend=None, scale=alt.Scale(domain=['Best (Floor)', 'Average', 'Worst (Ceiling)'], range=['#2ca02c', '#1f77b4', '#d62728'])),
-                    tooltip=['Metric', 'Score']
+                bars_d = base_d.mark_bar(width=35).encode(
+                    color=alt.Color('Frequency:Q', legend=None, scale=alt.Scale(scheme='blues')),
+                    tooltip=['Score', 'Frequency']
                 )
-                text_v = base_v.mark_text(align='center', baseline='bottom', dy=-6, fontSize=13, fontWeight='bold', color='black').encode(
-                    text=alt.Text('Score:Q', format='.1f')
+                text_d = base_d.mark_text(align='center', baseline='bottom', dy=-6, fontSize=13, fontWeight='bold', color='black').encode(
+                    text=alt.Text('Frequency:Q')
                 )
-                vol_chart = (bars_v + text_v).properties(height=320)
-                st.altair_chart(vol_chart, use_container_width=True)
+                disp_chart = (bars_d + text_d).properties(height=320)
+                st.altair_chart(disp_chart, use_container_width=True)
         
     else:
         st.warning(f"No primary roster scores found for {selected_player}.")
