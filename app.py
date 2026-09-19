@@ -275,7 +275,7 @@ if selected_player != "All Players":
         col_pan1, col_pan2 = st.columns(2)
         
         with col_pan1:
-            st.subheader("Par Performance Breakdown (Avg Relative to Par)")
+            st.subheader("Par 3 vs 4 vs 5")
             par_tier_df = calculate_par_tier_performance(player_data)
             if not par_tier_df.empty:
                 p_row = par_tier_df.iloc[0]
