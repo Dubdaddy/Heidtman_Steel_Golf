@@ -104,14 +104,25 @@ if selected_player != "All Players":
         # Lowest round with most recent date tie-breaker
         lowest_round_df = player_data.sort_values(by=['Total', 'Golf Date'], ascending=[True, False]).iloc[0]
         best_score = lowest_round_df['Total']
-        best_date_str = lowest_round_df['Golf Date'].strftime('%m/%d/%Y')
+        
+        # Format date without leading zeros (e.g., 8/6/2025)
+        dt = lowest_round_df['Golf Date']
+        best_date_str = f"{dt.month}/{dt.day}/{dt.year}"
         
         player_hcp_row = current_handicaps[current_handicaps['Golfer Name'] == selected_player]
         player_hcp = player_hcp_row['Current Handicap Index'].values[0] if not player_hcp_row.empty else "N/A"
         
         col1.metric("Current Handicap", player_hcp)
         col2.metric("Career Avg Score", round(avg_score, 2))
-        col3.metric("Lowest Round", f"{int(best_score)} ({best_date_str})")
+        
+        # Custom HTML metric for Lowest Round to make the date smaller subtext next to the score
+        col3.markdown(f"""
+            <div style="font-size: 14px; font-weight: 400; color: rgb(49, 51, 63); margin-bottom: 2px;">Lowest Round</div>
+            <div style="font-size: 2.25rem; font-weight: 600; line-height: 1.2;">
+                {int(best_score)} <span style="font-size: 0.95rem; font-weight: 400; color: gray;">{best_date_str}</span>
+            </div>
+        """, unsafe_allow_html=True)
+        
         col4.metric("Rounds Played", rounds_played)
         
         st.markdown("---")
@@ -132,7 +143,8 @@ if selected_player != "All Players":
         with col_split2:
             st.subheader("Recent Form (Last 5 Rounds)")
             recent_5 = player_data.head(5)[['Golf Date', 'Front/Back', 'Total']].copy()
-            recent_5['Golf Date'] = recent_5['Golf Date'].dt.strftime('%m/%d/%Y')
+            # Format recent form dates without leading zeros as well
+            recent_5['Golf Date'] = recent_5['Golf Date'].dt.month.astype(str) + '/' + recent_5['Golf Date'].dt.day.astype(str) + '/' + recent_5['Golf Date'].dt.year.astype(str)
             st.dataframe(recent_5, use_container_width=True, hide_index=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
@@ -148,6 +160,9 @@ if selected_player != "All Players":
                 r_cnt = len(y_df)
                 s_avg = y_df['Total'].mean()
                 s_min_row = y_df.sort_values(by=['Total', 'Golf Date'], ascending=[True, False]).iloc[0]
+                s_dt = s_min_row['Golf Date']
+                s_date_str = f"{s_dt.month}/{s_dt.day}/{s_dt.year}"
+                
                 front_avg = y_df[y_df['Front/Back'] == 'Front']['Total'].mean()
                 back_avg = y_df[y_df['Front/Back'] == 'Back']['Total'].mean()
                 
@@ -155,7 +170,7 @@ if selected_player != "All Players":
                     'Season': str(y),
                     'Rounds': r_cnt,
                     'Avg Score': round(s_avg, 2),
-                    'Lowest Round': f"{s_min_row['Total']} ({s_min_row['Golf Date'].strftime('%m/%d/%y')})",
+                    'Lowest Round': f"{s_min_row['Total']} ({s_date_str})",
                     'Front 9 Avg': round(front_avg, 2) if not pd.isna(front_avg) else "N/A",
                     'Back 9 Avg': round(back_avg, 2) if not pd.isna(back_avg) else "N/A"
                 })
@@ -165,7 +180,7 @@ if selected_player != "All Players":
             'Season': 'All Time',
             'Rounds': rounds_played,
             'Avg Score': round(avg_score, 2),
-            'Lowest Round': f"{best_score} ({lowest_round_df['Golf Date'].strftime('%m/%d/%y')})",
+            'Lowest Round': f"{best_score} ({best_date_str})",
             'Front 9 Avg': round(tot_front, 2) if not pd.isna(tot_front) else "N/A",
             'Back 9 Avg': round(tot_back, 2) if not pd.isna(tot_back) else "N/A"
         })
@@ -178,7 +193,7 @@ if selected_player != "All Players":
         # Dynamic Scoring Trend (Altair removes winter months and sets custom Y-axis)
         st.subheader(f"{selected_player}'s Scoring Trend")
         chart_data = player_data.sort_values('Golf Date').copy()
-        chart_data['Date Label'] = chart_data['Golf Date'].dt.strftime('%m/%d/%Y')
+        chart_data['Date Label'] = chart_data['Golf Date'].dt.month.astype(str) + '/' + chart_data['Golf Date'].dt.day.astype(str) + '/' + chart_data['Golf Date'].dt.year.astype(str)
         
         min_y = max(0, chart_data['Total'].min() - 3)
         max_y = chart_data['Total'].max() + 3
@@ -217,7 +232,8 @@ else:
         grouped = primary_scores.groupby('Golfer Name')
         for name, group in grouped:
             best_row = group.sort_values(by=['Total', 'Golf Date'], ascending=[True, False]).iloc[0]
-            lowest_rounds_dict[name] = f"{best_row['Total']} ({best_row['Golf Date'].strftime('%m/%d/%y')})"
+            b_dt = best_row['Golf Date']
+            lowest_rounds_dict[name] = f"{best_row['Total']} ({b_dt.month}/{b_dt.day}/{b_dt.year})"
             
         player_summary = grouped.agg(
             Rounds_Played=('Total', 'count'),
@@ -254,7 +270,7 @@ else:
             
         st.subheader("League Scoring Trend (Daily Average)")
         trend_data = primary_scores.groupby('Golf Date')['Total'].mean().reset_index()
-        trend_data['Date Label'] = trend_data['Golf Date'].dt.strftime('%m/%d/%Y')
+        trend_data['Date Label'] = trend_data['Golf Date'].dt.month.astype(str) + '/' + trend_data['Golf Date'].dt.day.astype(str) + '/' + trend_data['Golf Date'].dt.year.astype(str)
         
         min_y = max(0, trend_data['Total'].min() - 3)
         max_y = trend_data['Total'].max() + 3
