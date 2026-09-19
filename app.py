@@ -12,9 +12,17 @@ def load_data():
     df['Golf Date'] = pd.to_datetime(df['Golf Date'])
     df['Year'] = df['Golf Date'].dt.year
     df['Golfer Name'] = df['Golfer Name'].str.strip().str.title()
-    return df
+    
+    try:
+        members_df = pd.read_excel('Golf League Data.xlsx', sheet_name='Members')
+        col_name = members_df.columns[0]
+        members_set = set(members_df[col_name].dropna().astype(str).str.strip().str.title())
+    except Exception:
+        members_set = set()
+        
+    return df, members_set
 
-df = load_data()
+df, members_set = load_data()
 
 # --- SIDEBAR FILTERS ---
 st.sidebar.title("League Filters")
@@ -74,6 +82,10 @@ current_handicaps = (
 )
 current_handicaps['Current Handicap Index'] = current_handicaps['Current Handicap Index'].astype(int)
 current_handicaps = current_handicaps.sort_values('Current Handicap Index')
+
+# Split into Members and Non Members
+members_hcp = current_handicaps[current_handicaps['Golfer Name'].isin(members_set)].reset_index(drop=True)
+non_members_hcp = current_handicaps[~current_handicaps['Golfer Name'].isin(members_set)].reset_index(drop=True)
 
 primary_scores = filtered_df[filtered_df['Had Sub?'] == 'No']
 hole_columns = ['Hole 1', 'Hole 2', 'Hole 3', 'Hole 4', 'Hole 5', 'Hole 6', 'Hole 7', 'Hole 8', 'Hole 9']
@@ -345,7 +357,13 @@ else:
         2. **Modern WHS Sliding Scale & Adjustments:** Sliding scale applies standard negative adjustments (up to -2.0) for players with fewer than 20 rounds.
         """)
         
-    st.dataframe(current_handicaps, use_container_width=True, hide_index=True)
+    h_col1, h_col2 = st.columns(2)
+    with h_col1:
+        st.subheader("Members")
+        st.dataframe(members_hcp, use_container_width=True, hide_index=True)
+    with h_col2:
+        st.subheader("Non Members")
+        st.dataframe(non_members_hcp, use_container_width=True, hide_index=True)
 
     st.header("Player Profiles & Statistics")
     
