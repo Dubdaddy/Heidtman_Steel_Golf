@@ -45,6 +45,7 @@ with st.expander("ℹ️ How are modern handicaps calculated?"):
     1. **Score Differential:** 
        - **Front 9:** Rating = `34.0`, Slope = `118`
        - **Back 9:** Rating = `35.0`, Slope = `125`
+
        
        $$\\text{Differential} = \\frac{(\\text{Gross Score} - \\text{Course Rating}) \\times 113}{\\text{Slope Rating}}$$
        
