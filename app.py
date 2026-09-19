@@ -40,11 +40,12 @@ st.header("League Handicaps", help="Click the info box below to see the modern W
 
 with st.expander("ℹ️ How are modern handicaps calculated?"):
     st.markdown("""
-    **Modern WHS Calculation Breakdown:**
+    **2026 WHS Calculation Breakdown:**
     
     1. **Score Differential:** 
        - **Front 9:** Rating = `34.0`, Slope = `118`
        - **Back 9:** Rating = `35.0`, Slope = `125`
+       
        $$\\text{Differential} = \\frac{(\\text{Gross Score} - \\text{Course Rating}) \\times 113}{\\text{Slope Rating}}$$
        
     2. **Modern WHS Sliding Scale & Adjustments:** 
