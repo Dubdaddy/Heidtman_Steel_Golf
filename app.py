@@ -282,21 +282,23 @@ else:
         # --- PHASE 4: VISUALIZATIONS & TRENDS ---
         st.header("Visualizations & Trends")
         
-        # Side-by-side Hole Difficulty Charts
+        # Side-by-side Over Par Hole Difficulty Charts
         col1, col2 = st.columns(2)
         
         front_scores = primary_scores[primary_scores['Front/Back'] == 'Front']
         back_scores = primary_scores[primary_scores['Front/Back'] == 'Back']
         
+        # Compute over par averages
+        front_over_par = front_scores[hole_columns].mean().sub(pd.Series(FRONT_PARS)).round(2).rename("Score Over Par")
+        back_over_par = back_scores[hole_columns].mean().sub(pd.Series(BACK_PARS)).round(2).rename("Score Over Par")
+        
         with col1:
-            st.subheader("Front 9 Hole Difficulty")
-            front_diff = front_scores[hole_columns].mean().rename("Average Score")
-            st.bar_chart(front_diff)
+            st.subheader("Front 9 Hole Difficulty (Over Par)")
+            st.bar_chart(front_over_par)
             
         with col2:
-            st.subheader("Back 9 Hole Difficulty")
-            back_diff = back_scores[hole_columns].mean().rename("Average Score")
-            st.bar_chart(back_diff)
+            st.subheader("Back 9 Hole Difficulty (Over Par)")
+            st.bar_chart(back_over_par)
             
         st.markdown("<br>", unsafe_allow_html=True)
             
