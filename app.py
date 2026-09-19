@@ -454,7 +454,26 @@ else:
         st.dataframe(player_summary, use_container_width=True, hide_index=True)
 
         st.subheader("Hole-by-Hole Scoring Averages")
-        hole_averages = primary_scores.groupby('Golfer Name')[hole_columns].mean().round(2).reset_index()
+        
+        # Toggle button for Front 9 vs Back 9
+        nine_selection = st.radio(
+            "Select Nine:", 
+            options=["Front 9", "Back 9"], 
+            horizontal=True,
+            label_visibility="collapsed"
+        )
+        
+        # Filter the data based on the toggle selection
+        if nine_selection == "Front 9":
+            side_scores = primary_scores[primary_scores['Front/Back'] == 'Front']
+            hole_averages = side_scores.groupby('Golfer Name')[hole_columns].mean().round(2).reset_index()
+        else:
+            side_scores = primary_scores[primary_scores['Front/Back'] == 'Back']
+            hole_averages = side_scores.groupby('Golfer Name')[hole_columns].mean().round(2).reset_index()
+            # Rename columns to represent Holes 10-18 for the Back 9 display
+            back_nine_columns = {f'Hole {i}': f'Hole {i+9}' for i in range(1, 10)}
+            hole_averages = hole_averages.rename(columns=back_nine_columns)
+            
         st.dataframe(hole_averages, use_container_width=True, hide_index=True)
         
         # SCORING BREAKDOWN TABLE (LEAGUE)
