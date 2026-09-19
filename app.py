@@ -52,7 +52,7 @@ def calculate_differential(row):
 
 hcp_df['Differential'] = hcp_df.apply(calculate_differential, axis=1)
 
-def get_handicap(player_rounds):
+def get_handicap_for_subset(player_rounds):
     recent_rounds = player_rounds.sort_values(by='Golf Date', ascending=False).head(20)
     rounds_played = len(recent_rounds)
     if rounds_played < 3: return None
@@ -74,18 +74,46 @@ def get_handicap(player_rounds):
     handicap_index = (best_diffs['Differential'].mean()) + adjustment
     return max(0, int(handicap_index)) 
 
+# Overall / Combined Handicaps
 current_handicaps = (
     hcp_df.groupby('Golfer Name')
-    .apply(get_handicap)
+    .apply(get_handicap_for_subset)
     .dropna()
     .reset_index(name='Current Handicap Index')
 )
 current_handicaps['Current Handicap Index'] = current_handicaps['Current Handicap Index'].astype(int)
-current_handicaps = current_handicaps.sort_values('Current Handicap Index')
+
+# Front 9 Handicaps
+front_hcp_df = hcp_df[hcp_df['Front/Back'] == 'Front']
+front_handicaps = (
+    front_hcp_df.groupby('Golfer Name')
+    .apply(get_handicap_for_subset)
+    .dropna()
+    .reset_index(name='Front 9 HCP')
+)
+front_handicaps['Front 9 HCP'] = front_handicaps['Front 9 HCP'].astype(int)
+
+# Back 9 Handicaps
+back_hcp_df = hcp_df[hcp_df['Front/Back'] == 'Back']
+back_handicaps = (
+    back_hcp_df.groupby('Golfer Name')
+    .apply(get_handicap_for_subset)
+    .dropna()
+    .reset_index(name='Back 9 HCP')
+)
+back_handicaps['Back 9 HCP'] = back_handicaps['Back 9 HCP'].astype(int)
+
+# Merge overall, front 9, and back 9 handicaps
+split_handicaps = (
+    current_handicaps
+    .merge(front_handicaps, on='Golfer Name', how='left')
+    .merge(back_handicaps, on='Golfer Name', how='left')
+    .sort_values('Current Handicap Index')
+)
 
 # Split into Members and Former Members
-members_hcp = current_handicaps[current_handicaps['Golfer Name'].isin(members_set)].reset_index(drop=True)
-former_members_hcp = current_handicaps[~current_handicaps['Golfer Name'].isin(members_set)].reset_index(drop=True)
+members_hcp = split_handicaps[split_handicaps['Golfer Name'].isin(members_set)].reset_index(drop=True)
+former_members_hcp = split_handicaps[~split_handicaps['Golfer Name'].isin(members_set)].reset_index(drop=True)
 
 primary_scores = filtered_df[filtered_df['Had Sub?'] == 'No']
 hole_columns = ['Hole 1', 'Hole 2', 'Hole 3', 'Hole 4', 'Hole 5', 'Hole 6', 'Hole 7', 'Hole 8', 'Hole 9']
