@@ -111,10 +111,9 @@ if selected_player != "All Players":
         
         col1.metric("Current Handicap", player_hcp)
         col2.metric("Career Avg Score", round(avg_score, 2))
-        col3.metric("Lowest Round", f"{int(best_score)}", help=f"Shot on {best_date_str}")
+        col3.metric("Lowest Round", f"{int(best_score)} ({best_date_str})")
         col4.metric("Rounds Played", rounds_played)
         
-        st.markdown(f"*Lowest Round Date: **{best_date_str}***")
         st.markdown("---")
         
         col_split1, col_split2 = st.columns(2)
