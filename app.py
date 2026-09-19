@@ -282,7 +282,7 @@ else:
         # --- PHASE 4: VISUALIZATIONS & TRENDS ---
         st.header("Visualizations & Trends")
         
-        # Side-by-side Dynamic Over-Par Hole Difficulty Charts with Data Labels & Hole Numbers
+        # Side-by-side Dynamic Over-Par Hole Difficulty Charts with Larger Data Labels & Hole Numbers
         col1, col2 = st.columns(2)
         
         front_scores = primary_scores[primary_scores['Front/Back'] == 'Front']
@@ -299,8 +299,8 @@ else:
         f_min, f_max = front_over_par['Score Over Par'].min(), front_over_par['Score Over Par'].max()
         b_min, b_max = back_over_par['Score Over Par'].min(), back_over_par['Score Over Par'].max()
         
-        front_domain = [max(0, f_min - 0.15), f_max + 0.15]
-        back_domain = [max(0, b_min - 0.15), b_max + 0.15]
+        front_domain = [max(0, f_min - 0.15), f_max + 0.2]
+        back_domain = [max(0, b_min - 0.15), b_max + 0.2]
         
         hole_order = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
         
@@ -315,10 +315,11 @@ else:
                 color=alt.Color('Score Over Par:Q', legend=None, scale=alt.Scale(scheme='blues')),
                 tooltip=['Hole', 'Score Over Par']
             )
-            text_f = base_f.mark_text(align='center', baseline='bottom', dy=-5, fontSize=11).encode(
+            # Increased font size for better readability
+            text_f = base_f.mark_text(align='center', baseline='bottom', dy=-6, fontSize=13, fontWeight='bold').encode(
                 text=alt.Text('Score Over Par:Q', format='.2f')
             )
-            front_chart = (bars_f + text_f).properties(height=350)
+            front_chart = (bars_f + text_f).properties(height=380)
             st.altair_chart(front_chart, use_container_width=True)
             
         with col2:
@@ -332,10 +333,11 @@ else:
                 color=alt.Color('Score Over Par:Q', legend=None, scale=alt.Scale(scheme='oranges')),
                 tooltip=['Hole', 'Score Over Par']
             )
-            text_b = base_b.mark_text(align='center', baseline='bottom', dy=-5, fontSize=11).encode(
+            # Increased font size for better readability
+            text_b = base_b.mark_text(align='center', baseline='bottom', dy=-6, fontSize=13, fontWeight='bold').encode(
                 text=alt.Text('Score Over Par:Q', format='.2f')
             )
-            back_chart = (bars_b + text_b).properties(height=350)
+            back_chart = (bars_b + text_b).properties(height=380)
             st.altair_chart(back_chart, use_container_width=True)
             
         st.markdown("<br>", unsafe_allow_html=True)
