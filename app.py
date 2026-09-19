@@ -40,12 +40,11 @@ st.header("League Handicaps", help="Click the info box below to see the modern W
 
 with st.expander("ℹ️ How are modern handicaps calculated?"):
     st.markdown("""
-    **2026 WHS Calculation Breakdown:**
+    **Modern WHS Calculation Breakdown:**
     
     1. **Score Differential:** 
        - **Front 9:** Rating = `34.0`, Slope = `118`
        - **Back 9:** Rating = `35.0`, Slope = `125`
-
        
        $$\\text{Differential} = \\frac{(\\text{Gross Score} - \\text{Course Rating}) \\times 113}{\\text{Slope Rating}}$$
        
@@ -61,6 +60,9 @@ with st.expander("ℹ️ How are modern handicaps calculated?"):
        - **17-18 scores:** Average of lowest 6
        - **19 scores:** Average of lowest 7
        - **20 scores:** Average of lowest 8
+       
+    3. **Final Index:** 
+       The 0.96 legacy multiplier has been eliminated. The raw average (plus any adjustment) forms the index, truncated to a whole integer for league play.
     """)
 
 hcp_df = df[df['Had Sub?'] == 'No'].copy()
@@ -107,7 +109,7 @@ def get_handicap(player_rounds):
         
     best_diffs = recent_rounds.nsmallest(count, 'Differential')
     
-    # Modern WHS Index (No multiplier)
+    # Modern WHS Index
     handicap_index = (best_diffs['Differential'].mean()) + adjustment
     
     return max(0, int(handicap_index)) 
@@ -148,5 +150,33 @@ if not primary_scores.empty:
     hole_averages = primary_scores.groupby('Golfer Name')[hole_columns].mean().round(2).reset_index()
     
     st.dataframe(hole_averages, use_container_width=True, hide_index=True)
+    
+    # --- PHASE 4: VISUALIZATIONS & TRENDS ---
+    st.header("Visualizations & Trends")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("Hole Difficulty (Average Score)")
+        hole_diff = primary_scores[hole_columns].mean().rename("Average Score")
+        st.bar_chart(hole_diff)
+        
+    with col2:
+        st.subheader("Score Distribution")
+        score_dist = primary_scores['Total'].value_counts().sort_index()
+        st.bar_chart(score_dist)
+        
+    st.subheader("Scoring Trend Over Time")
+    trend_data = primary_scores.sort_values('Golf Date')
+    
+    if selected_player != "All Players":
+        # Plot individual player's scores chronologically
+        chart_data = trend_data.set_index('Golf Date')['Total']
+        st.line_chart(chart_data)
+    else:
+        # Plot the league average per day to avoid a messy chart
+        chart_data = trend_data.groupby('Golf Date')['Total'].mean()
+        st.line_chart(chart_data)
+
 else:
     st.warning("No data available for the current filter selection.")
