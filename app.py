@@ -3,7 +3,44 @@ import pandas as pd
 import altair as alt
 
 # Set page configuration for the dashboard
-st.set_page_config(page_title="Heidtman Steel Golf League", layout="wide")
+st.set_page_config(
+    page_title="Heidtman Steel Golf League", 
+    layout="wide",
+    initial_sidebar_state="auto"
+)
+
+# --- MOBILE-FRIENDLY CSS OPTIMIZATIONS ---
+st.markdown("""
+    <style>
+    /* Adjust main container padding for mobile screens */
+    .block-container {
+        padding-top: 1.5rem;
+        padding-bottom: 2rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    /* Make metric cards look clean and mobile-friendly */
+    div[data-testid="stMetric"] {
+        background-color: rgba(28, 131, 246, 0.04);
+        border: 1px solid rgba(28, 131, 246, 0.1);
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+    
+    /* Ensure tables and dataframes wrap and fit nicely */
+    [data-testid="stDataFrame"] {
+        width: 100% !important;
+    }
+    
+    /* Improve subheader spacing on mobile */
+    h2, h3 {
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # --- DATA INGESTION ---
 @st.cache_data
