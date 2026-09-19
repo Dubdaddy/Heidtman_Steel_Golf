@@ -16,7 +16,7 @@ def load_data():
     # Extract the Year for easy filtering later
     df['Year'] = df['Golf Date'].dt.year
     
-    # CLEANING: Fix capitalization and spacing typos in player names (Fixes the John Schaupp issue)
+    # CLEANING: Fix capitalization and spacing typos in player names
     df['Golfer Name'] = df['Golfer Name'].str.strip().str.title()
     
     return df
@@ -44,19 +44,81 @@ selected_player = st.sidebar.selectbox("Select Player", ["All Players"] + player
 if selected_player != "All Players":
     filtered_df = filtered_df[filtered_df['Golfer Name'] == selected_player]
 
-
 # --- MAIN DASHBOARD AREA ---
 st.title("Heidtman Steel Golf League Dashboard")
 st.markdown("Welcome to the league stat tracker.")
 
-# Show a sample of the data to verify it works
-st.subheader("Raw Data View")
-st.dataframe(filtered_df.head(15))
+# --- PHASE 3: DYNAMIC HANDICAP TRACKER ---
+st.header("League Handicaps")
+st.markdown("Calculated dynamically using USGA legacy formulas (Best 8 of Last 20 Differentials).")
+
+# We use the unfiltered dataframe for handicaps so it always looks at the last 20 rounds 
+# regardless of what year is selected in the sidebar, ensuring handicaps are current.
+hcp_df = df[df['Had Sub?'] == 'No'].copy()
+
+# Function to calculate 9-hole USGA differential
+def calculate_differential(row):
+    score = row['Total']
+    # Apply course and slope ratings based on the nine played
+    if row['Front/Back'] == 'Front':
+        cr, sr = 34.0, 118.0
+    elif row['Front/Back'] == 'Back':
+        cr, sr = 35.0, 125.0
+    else:
+        cr, sr = 34.5, 121.5 # Fallback average
+        
+    diff = (score - cr) * 113.0 / sr
+    return max(0, diff) # Prevent negative differentials
+
+# Calculate differential for every round historically
+hcp_df['Differential'] = hcp_df.apply(calculate_differential, axis=1)
+
+def get_handicap(player_rounds):
+    # Sort by date to ensure we get the most recent rounds
+    recent_rounds = player_rounds.sort_values(by='Golf Date', ascending=False).head(20)
+    rounds_played = len(recent_rounds)
+    
+    # Require at least 3 rounds to establish a baseline handicap
+    if rounds_played < 3:
+        return None
+        
+    # USGA sliding scale for fewer than 20 rounds
+    if rounds_played <= 5: count = 1
+    elif rounds_played <= 8: count = 2
+    elif rounds_played <= 11: count = 3
+    elif rounds_played <= 14: count = 4
+    elif rounds_played <= 16: count = 5
+    elif rounds_played <= 18: count = 6
+    elif rounds_played == 19: count = 7
+    else: count = 8
+        
+    # Get the lowest differentials based on the sliding scale
+    best_diffs = recent_rounds.nsmallest(count, 'Differential')
+    
+    # Calculate legacy USGA index (average of best differentials * 0.96)
+    handicap_index = (best_diffs['Differential'].mean()) * 0.96
+    
+    return int(handicap_index) # League format uses whole integers
+
+# Apply the logic and create the handicap leaderboard
+current_handicaps = (
+    hcp_df.groupby('Golfer Name')
+    .apply(get_handicap)
+    .dropna()
+    .reset_index(name='Current Handicap Index')
+)
+
+current_handicaps['Current Handicap Index'] = current_handicaps['Current Handicap Index'].astype(int)
+current_handicaps = current_handicaps.sort_values('Current Handicap Index')
+
+# Display the handicap table
+st.dataframe(current_handicaps, use_container_width=True, hide_index=True)
+
 
 # --- PHASE 2: CORE METRICS & ANALYTICS ---
 st.header("Player Profiles & Statistics")
 
-# Exclude substitute rounds to maintain accurate personal statistics
+# Exclude substitute rounds to maintain accurate personal statistics for the filtered view
 primary_scores = filtered_df[filtered_df['Had Sub?'] == 'No']
 
 if not primary_scores.empty:
