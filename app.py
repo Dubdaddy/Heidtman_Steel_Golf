@@ -277,25 +277,22 @@ if selected_player != "All Players":
             st.subheader("Par Performance Breakdown (Avg Relative to Par)")
             par_tier_df = calculate_par_tier_performance(player_data)
             if not par_tier_df.empty:
+                # Melt/Transform dataframe for Altair charting
                 p_row = par_tier_df.iloc[0]
                 p_chart_df = pd.DataFrame({
                     'Par Type': ['Par 3', 'Par 4', 'Par 5'],
                     'Score Over Par': [p_row['Par 3 Avg (+/-)'], p_row['Par 4 Avg (+/-)'], p_row['Par 5 Avg (+/-)']]
                 })
                 
-                p_min, p_max = p_chart_df['Score Over Par'].min(), p_chart_df['Score Over Par'].max()
-                p_domain = [max(0, p_min - 0.1), p_max + 0.3]
-                
                 base_p = alt.Chart(p_chart_df).encode(
                     x=alt.X('Par Type:N', sort=['Par 3', 'Par 4', 'Par 5'], title='Hole Type', axis=alt.Axis(labelAngle=0)),
-                    y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=p_domain, zero=False), axis=None)
+                    y=alt.Y('Score Over Par:Q', scale=alt.Scale(zero=False), axis=None)
                 )
                 bars_p = base_p.mark_bar().encode(
                     color=alt.Color('Score Over Par:Q', legend=None, scale=alt.Scale(scheme='greens')),
                     tooltip=['Par Type', 'Score Over Par']
                 )
-                # Data labels clearly positioned above the bar with bold dark text
-                text_p = base_p.mark_text(align='center', baseline='bottom', dy=-6, fontSize=14, fontWeight='bold', color='black').encode(
+                text_p = base_p.mark_text(align='center', baseline='bottom', dy=-6, fontSize=13, fontWeight='bold').encode(
                     text=alt.Text('Score Over Par:Q', format='.2f')
                 )
                 par_chart = (bars_p + text_p).properties(height=320)
