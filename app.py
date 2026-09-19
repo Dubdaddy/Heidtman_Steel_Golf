@@ -388,10 +388,20 @@ else:
     h_col1, h_col2 = st.columns(2)
     with h_col1:
         st.subheader("Members")
-        st.dataframe(members_hcp, use_container_width=True, hide_index=True)
+        st.dataframe(
+            members_hcp, 
+            use_container_width=True, 
+            hide_index=True, 
+            height=int((len(members_hcp) + 1) * 35 + 3)
+        )
     with h_col2:
         st.subheader("Former Members")
-        st.dataframe(former_members_hcp, use_container_width=True, hide_index=True)
+        st.dataframe(
+            former_members_hcp, 
+            use_container_width=True, 
+            hide_index=True, 
+            height=int((len(former_members_hcp) + 1) * 35 + 3)
+        )
 
     st.header("Player Profiles & Statistics")
     
