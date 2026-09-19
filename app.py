@@ -16,6 +16,38 @@ def load_data():
 
 df = load_data()
 
+# --- PAR MAPPINGS ---
+FRONT_PARS = {'Hole 1': 4, 'Hole 2': 4, 'Hole 3': 5, 'Hole 4': 4, 'Hole 5': 4, 'Hole 6': 3, 'Hole 7': 5, 'Hole 8': 3, 'Hole 9': 4}
+BACK_PARS = {'Hole 1': 4, 'Hole 2': 5, 'Hole 3': 4, 'Hole 4': 3, 'Hole 5': 5, 'Hole 6': 4, 'Hole 7': 3, 'Hole 8': 4, 'Hole 9': 4}
+
+def calculate_breakdown(sub_df):
+    stats = []
+    hole_columns = [f'Hole {i}' for i in range(1, 10)]
+    
+    for name, group in sub_df.groupby('Golfer Name'):
+        eagles, birdies, pars, bogeys, double_plus = 0, 0, 0, 0, 0
+        for _, row in group.iterrows():
+            fb = row['Front/Back']
+            p_dict = FRONT_PARS if fb == 'Front' else BACK_PARS
+            for h_col in hole_columns:
+                score = row[h_col]
+                if pd.isna(score): continue
+                diff = score - p_dict[h_col]
+                if diff <= -2: eagles += 1
+                elif diff == -1: birdies += 1
+                elif diff == 0: pars += 1
+                elif diff == 1: bogeys += 1
+                else: double_plus += 1
+        stats.append({
+            'Golfer Name': name,
+            'Eagles': eagles,
+            'Birdies': birdies,
+            'Pars': pars,
+            'Bogeys': bogeys,
+            'Double Bogey+': double_plus
+        })
+    return pd.DataFrame(stats)
+
 # --- SIDEBAR FILTERS ---
 st.sidebar.title("League Filters")
 available_years = df['Year'].unique()
@@ -101,11 +133,8 @@ if selected_player != "All Players":
         rounds_played = len(player_data)
         avg_score = player_data['Total'].mean()
         
-        # Lowest round with most recent date tie-breaker
         lowest_round_df = player_data.sort_values(by=['Total', 'Golf Date'], ascending=[True, False]).iloc[0]
         best_score = lowest_round_df['Total']
-        
-        # Format date without leading zeros (e.g., 8/6/2025)
         dt = lowest_round_df['Golf Date']
         best_date_str = f"{dt.month}/{dt.day}/{dt.year}"
         
@@ -114,15 +143,12 @@ if selected_player != "All Players":
         
         col1.metric("Current Handicap", player_hcp)
         col2.metric("Career Avg Score", round(avg_score, 2))
-        
-        # Custom HTML metric for Lowest Round to make the date smaller subtext next to the score
         col3.markdown(f"""
             <div style="font-size: 14px; font-weight: 400; color: rgb(49, 51, 63); margin-bottom: 2px;">Lowest Round</div>
             <div style="font-size: 2.25rem; font-weight: 600; line-height: 1.2;">
                 {int(best_score)} <span style="font-size: 0.95rem; font-weight: 400; color: gray;">{best_date_str}</span>
             </div>
         """, unsafe_allow_html=True)
-        
         col4.metric("Rounds Played", rounds_played)
         
         st.markdown("---")
@@ -143,12 +169,19 @@ if selected_player != "All Players":
         with col_split2:
             st.subheader("Recent Form (Last 5 Rounds)")
             recent_5 = player_data.head(5)[['Golf Date', 'Front/Back', 'Total']].copy()
-            # Format recent form dates without leading zeros as well
             recent_5['Golf Date'] = recent_5['Golf Date'].dt.month.astype(str) + '/' + recent_5['Golf Date'].dt.day.astype(str) + '/' + recent_5['Golf Date'].dt.year.astype(str)
             st.dataframe(recent_5, use_container_width=True, hide_index=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
         
+        # SCORING BREAKDOWN TABLE (PLAYER)
+        st.subheader("Scoring Breakdown")
+        breakdown_df = calculate_breakdown(player_data)
+        if not breakdown_df.empty:
+            st.dataframe(breakdown_df.drop(columns=['Golfer Name']), use_container_width=True, hide_index=True)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+
         # SEASON OVER SEASON TABLE
         st.subheader("Season-over-Season Performance")
         season_rows = []
@@ -175,7 +208,6 @@ if selected_player != "All Players":
                     'Back 9 Avg': round(back_avg, 2) if not pd.isna(back_avg) else "N/A"
                 })
         
-        # All Time Row
         season_rows.append({
             'Season': 'All Time',
             'Rounds': rounds_played,
@@ -190,7 +222,7 @@ if selected_player != "All Players":
         
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # Dynamic Scoring Trend (Altair removes winter months and sets custom Y-axis)
+        # Dynamic Scoring Trend
         st.subheader(f"{selected_player}'s Scoring Trend")
         chart_data = player_data.sort_values('Golf Date').copy()
         chart_data['Date Label'] = chart_data['Golf Date'].dt.month.astype(str) + '/' + chart_data['Golf Date'].dt.day.astype(str) + '/' + chart_data['Golf Date'].dt.year.astype(str)
@@ -227,7 +259,6 @@ else:
     st.header("Player Profiles & Statistics")
     
     if not primary_scores.empty:
-        # Get lowest round with date for the overview table
         lowest_rounds_dict = {}
         grouped = primary_scores.groupby('Golfer Name')
         for name, group in grouped:
@@ -241,9 +272,7 @@ else:
             Highest_Round=('Total', 'max')
         ).reset_index()
         
-        # Map the new lowest round string to the dataframe
         player_summary.insert(3, 'Lowest_Round', player_summary['Golfer Name'].map(lowest_rounds_dict))
-        
         player_summary['Average_Score'] = player_summary['Average_Score'].round(2)
         player_summary = player_summary.sort_values(by='Average_Score')
         
@@ -253,6 +282,11 @@ else:
         st.subheader("Hole-by-Hole Scoring Averages")
         hole_averages = primary_scores.groupby('Golfer Name')[hole_columns].mean().round(2).reset_index()
         st.dataframe(hole_averages, use_container_width=True, hide_index=True)
+        
+        # SCORING BREAKDOWN TABLE (LEAGUE)
+        st.subheader("League Scoring Breakdown Summary")
+        league_breakdown = calculate_breakdown(primary_scores).sort_values(by='Pars', ascending=False)
+        st.dataframe(league_breakdown, use_container_width=True, hide_index=True)
         
         # --- PHASE 4: VISUALIZATIONS & TRENDS ---
         st.header("Visualizations & Trends")
