@@ -288,17 +288,18 @@ if selected_player != "All Players":
                 p_domain = [max(0, p_min - 0.1), p_max + 0.3]
                 
                 base_p = alt.Chart(p_chart_df).encode(
-                    x=alt.X('Par Type:N', sort=['Par 3', 'Par 4', 'Par 5'], title='Hole Type', axis=alt.Axis(labelAngle=0, labelFontSize=12, labelFontWeight='bold')),
+                    x=alt.X('Par Type:N', sort=['Par 3', 'Par 4', 'Par 5'], title='Hole Type', 
+                            axis=alt.Axis(labelAngle=0, labelFontSize=12, labelFontWeight='bold', labelColor='black', titleColor='black')),
                     y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=p_domain, zero=False), axis=None)
                 )
                 bars_p = base_p.mark_bar().encode(
                     color=alt.Color('Score Over Par:Q', legend=None, scale=alt.Scale(scheme='greens')),
                     tooltip=['Par Type', 'Score Over Par']
                 )
-                text_p = base_p.mark_text(align='center', baseline='bottom', dy=-6, fontSize=13, fontWeight='bold').encode(
+                text_p = base_p.mark_text(align='center', baseline='bottom', dy=-6, fontSize=13, fontWeight='bold', color='black').encode(
                     text=alt.Text('Score Over Par:Q', format='.2f')
                 )
-                par_chart = (bars_p + text_p).properties(height=320)
+                par_chart = (bars_p + text_p).properties(height=300).configure_view(stroke=None)
                 st.altair_chart(par_chart, use_container_width=True)
                 
         with col_pan2:
@@ -314,7 +315,8 @@ if selected_player != "All Players":
                 d_domain = [0, d_max + 1.5]
                 
                 base_d = alt.Chart(disp_df).encode(
-                    x=alt.X('Score_Str:N', sort=disp_df['Score_Str'].tolist(), title='Gross Score', axis=alt.Axis(labelAngle=0, labelFontSize=12, labelFontWeight='bold')),
+                    x=alt.X('Score_Str:N', sort=disp_df['Score_Str'].tolist(), title='Gross Score', 
+                            axis=alt.Axis(labelAngle=0, labelFontSize=12, labelFontWeight='bold', labelColor='black', titleColor='black')),
                     y=alt.Y('Frequency:Q', scale=alt.Scale(domain=d_domain, zero=True), axis=None)
                 )
                 bars_d = base_d.mark_bar(width=35).encode(
@@ -324,7 +326,7 @@ if selected_player != "All Players":
                 text_d = base_d.mark_text(align='center', baseline='bottom', dy=-6, fontSize=13, fontWeight='bold', color='black').encode(
                     text=alt.Text('Frequency:Q')
                 )
-                disp_chart = (bars_d + text_d).properties(height=320)
+                disp_chart = (bars_d + text_d).properties(height=300).configure_view(stroke=None)
                 st.altair_chart(disp_chart, use_container_width=True)
         
     else:
