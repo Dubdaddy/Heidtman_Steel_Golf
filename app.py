@@ -16,6 +16,9 @@ def load_data():
     # Extract the Year for easy filtering later
     df['Year'] = df['Golf Date'].dt.year
     
+    # CLEANING: Fix capitalization and spacing typos in player names (Fixes the John Schaupp issue)
+    df['Golfer Name'] = df['Golfer Name'].str.strip().str.title()
+    
     return df
 
 # Load the data
@@ -40,6 +43,7 @@ selected_player = st.sidebar.selectbox("Select Player", ["All Players"] + player
 
 if selected_player != "All Players":
     filtered_df = filtered_df[filtered_df['Golfer Name'] == selected_player]
+
 
 # --- MAIN DASHBOARD AREA ---
 st.title("Heidtman Steel Golf League Dashboard")
