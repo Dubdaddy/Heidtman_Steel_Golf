@@ -283,16 +283,19 @@ if selected_player != "All Players":
                     'Score Over Par': [p_row['Par 3 Avg (+/-)'], p_row['Par 4 Avg (+/-)'], p_row['Par 5 Avg (+/-)']]
                 })
                 
+                p_min, p_max = p_chart_df['Score Over Par'].min(), p_chart_df['Score Over Par'].max()
+                p_domain = [max(0, p_min - 0.1), p_max + 0.3]
+                
                 base_p = alt.Chart(p_chart_df).encode(
                     x=alt.X('Par Type:N', sort=['Par 3', 'Par 4', 'Par 5'], title='Hole Type', axis=alt.Axis(labelAngle=0)),
-                    y=alt.Y('Score Over Par:Q', scale=alt.Scale(zero=False), axis=None)
+                    y=alt.Y('Score Over Par:Q', scale=alt.Scale(domain=p_domain, zero=False), axis=None)
                 )
                 bars_p = base_p.mark_bar().encode(
                     color=alt.Color('Score Over Par:Q', legend=None, scale=alt.Scale(scheme='greens')),
                     tooltip=['Par Type', 'Score Over Par']
                 )
-                # Data labels inside the middle of the bar
-                text_p = base_p.mark_text(align='center', baseline='middle', dy=0, fontSize=14, fontWeight='bold', color='white').encode(
+                # Data labels clearly positioned above the bar with bold dark text
+                text_p = base_p.mark_text(align='center', baseline='bottom', dy=-6, fontSize=14, fontWeight='bold', color='black').encode(
                     text=alt.Text('Score Over Par:Q', format='.2f')
                 )
                 par_chart = (bars_p + text_p).properties(height=320)
